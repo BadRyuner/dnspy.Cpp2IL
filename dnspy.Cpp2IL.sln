@@ -1,0 +1,34 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "dnSpy.Extension.Cpp2IL", "dnSpy.Extension.Cpp2IL\dnSpy.Extension.Cpp2IL.csproj", "{06A9799A-0EC2-4A02-8516-C50957A6BE84}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "dnSpy.Contracts.Logic", "dnSpy\dnSpy\dnSpy.Contracts.Logic\dnSpy.Contracts.Logic.csproj", "{A3C4DB55-0C31-40EA-B1EE-3332EC1FE79D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "dnSpy.Contracts.DnSpy", "dnSpy\dnSpy\dnSpy.Contracts.DnSpy\dnSpy.Contracts.DnSpy.csproj", "{6254764E-80CB-4E41-8DD7-26EC3E30F472}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "DnSpy", "DnSpy", "{0DCA9525-2997-4AEB-B37B-26831E08C75A}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{06A9799A-0EC2-4A02-8516-C50957A6BE84}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{06A9799A-0EC2-4A02-8516-C50957A6BE84}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{06A9799A-0EC2-4A02-8516-C50957A6BE84}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{06A9799A-0EC2-4A02-8516-C50957A6BE84}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A3C4DB55-0C31-40EA-B1EE-3332EC1FE79D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A3C4DB55-0C31-40EA-B1EE-3332EC1FE79D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A3C4DB55-0C31-40EA-B1EE-3332EC1FE79D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A3C4DB55-0C31-40EA-B1EE-3332EC1FE79D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6254764E-80CB-4E41-8DD7-26EC3E30F472}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6254764E-80CB-4E41-8DD7-26EC3E30F472}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6254764E-80CB-4E41-8DD7-26EC3E30F472}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6254764E-80CB-4E41-8DD7-26EC3E30F472}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{A3C4DB55-0C31-40EA-B1EE-3332EC1FE79D} = {0DCA9525-2997-4AEB-B37B-26831E08C75A}
+		{6254764E-80CB-4E41-8DD7-26EC3E30F472} = {0DCA9525-2997-4AEB-B37B-26831E08C75A}
+	EndGlobalSection
+EndGlobal

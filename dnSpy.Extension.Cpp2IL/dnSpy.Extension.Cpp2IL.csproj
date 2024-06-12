@@ -1,0 +1,25 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+    <Import Project="../dnSpy/DnSpyCommon.props" />
+
+    <PropertyGroup>
+        <AssemblyName>dnSpy.Extension.Cpp2IL.x</AssemblyName>
+        <Nullable>enable</Nullable>
+        <UseWPF>true</UseWPF>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+        <RootNamespace>Cpp2ILAdapter</RootNamespace>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\dnSpy\dnSpy\dnSpy.Contracts.DnSpy\dnSpy.Contracts.DnSpy.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Samboy063.Cpp2IL.Core" Version="2022.1.0-pre-release.14" />
+    </ItemGroup>
+    
+    <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+        <Copy SourceFiles="$(TargetPath)"
+              DestinationFolder="D:\Tools\dnspy\bin\Extensions\"
+              SkipUnchangedFiles="true" />
+    </Target>
+</Project>
