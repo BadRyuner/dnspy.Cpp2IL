@@ -34,7 +34,8 @@ public class FieldNode : DsDocumentNode, IDecompileSelf
     public bool Decompile(IDecompileNodeContext context)
     {
         var write = context.Output;
-        write.Write("field. ", BoxedTextColor.Blue);
+        if (context.Decompiler.GenericNameUI == "IL")
+            write.Write("field. ", BoxedTextColor.Blue);
         write.Write(Context.FieldType!.Type switch
         {
             Il2CppTypeEnum.IL2CPP_TYPE_I => "nint",
@@ -52,8 +53,8 @@ public class FieldNode : DsDocumentNode, IDecompileSelf
             Il2CppTypeEnum.IL2CPP_TYPE_R8 => "double",
             _ => "UnknownType"
         }, BoxedTextColor.Blue);
-        write.Write(" ", BoxedTextColor.White);
-        write.WriteLine(Context.FieldName, BoxedTextColor.White);
+        write.Write(" ", BoxedTextColor.Local);
+        write.WriteLine(Context.FieldName, BoxedTextColor.Local);
         return true;
     }
 }

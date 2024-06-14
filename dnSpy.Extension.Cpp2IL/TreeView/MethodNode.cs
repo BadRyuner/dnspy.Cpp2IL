@@ -1,6 +1,4 @@
-﻿using System.Linq;
-using System.Reflection;
-using System.Windows.Media.Animation;
+﻿using System.Reflection;
 using Cpp2IL.Core.ISIL;
 using Cpp2IL.Core.Model.Contexts;
 using dnSpy.Contracts.Decompiler;
@@ -21,7 +19,7 @@ public class MethodNode : DsDocumentNode, IDecompileSelf
         Context = context;
     }
 
-    public readonly MethodAnalysisContext Context;
+    public new readonly MethodAnalysisContext Context;
     
     public override Guid Guid => MyGuid;
     protected override ImageReference GetIcon(IDotNetImageService dnImgMgr) 
@@ -34,69 +32,133 @@ public class MethodNode : DsDocumentNode, IDecompileSelf
 
     public bool Decompile(IDecompileNodeContext context)
     {
+        if (context.Decompiler.GenericNameUI == "IL")
+            RenderIsil(context);
+        else
+            RenderPseudoSharp(context);
+        
+        return true;
+    }
+
+    private void RenderIsil(IDecompileNodeContext context)
+    {
         var write = context.Output;
-        Context.Analyze();
         write.WriteLine(Context.Definition!.HumanReadableSignature!, BoxedTextColor.Blue);
         write.IncreaseIndent();
-        if (Context.ConvertedIsil == null || Context.ConvertedIsil.Count == 0)
+        
+        try
         {
-            write.WriteLine("No ISIL was generated", BoxedTextColor.Red);
-        }
-        else
-        {
-            try
+            Context.Analyze();
+            
+            if (Context.ConvertedIsil == null || Context.ConvertedIsil.Count == 0)
             {
-                var white = BoxedTextColor.White;
+                write.WriteLine("No ISIL was generated", BoxedTextColor.Red);
+            }
+            else
+            {
+                var white = BoxedTextColor.Local;
                 foreach (var instruction in Context.ConvertedIsil)
                 {
                     write.Write(instruction.InstructionIndex.ToString(), BoxedTextColor.AsmAddress);
-                    write.Write(" ", BoxedTextColor.White);
+                    write.Write(" ", BoxedTextColor.Local);
                     write.Write(instruction.OpCode.Mnemonic.ToString(), BoxedTextColor.AsmMnemonic);
-                    write.Write(" ", BoxedTextColor.White);
+                    write.Write(" ", BoxedTextColor.Local);
                     var len = instruction.Operands.Length - 1;
                     for (var index = 0; index <= len ; index++)
                     {
                         var operand = instruction.Operands[index];
-
                         switch (operand.Type)
                         {
-                            case InstructionSetIndependentOperand.OperandType.Memory:
-                                var mem = (IsilMemoryOperand)operand.Data;
-                                if (mem.Base == null && mem.Index == null)
-                                {
-                                    var ctx = (Cpp2ILDocument)Document;
-                                    if (ctx.MethodByRva.TryGetValue(mem.Addend, out var method))
-                                    {
-                                        write.Write($"({method.DeclaringType?.FullName}::{method.Name})", BoxedTextColor.ExtensionMethod);
-                                        break;
-                                    }
-                                }
-                                write.Write(operand.Data.ToString(), BoxedTextColor.AsmNumber);
-                                break;
                             case InstructionSetIndependentOperand.OperandType.Immediate:
+                                if (index == 0 && instruction.OpCode.Mnemonic == IsilMnemonic.Call)
+                                {
+                                    var methodPtr = (ulong)((IsilImmediateOperand)operand.Data).Value;
+                                    if (Context.AppContext.MethodsByAddress.TryGetValue(methodPtr, out var methods))
+                                    {
+                                        var method = methods[0];
+                                        write.Write($"{method.DeclaringType?.FullName}::{method.Name}", BoxedTextColor.StaticMethod);
+                                    }
+                                    break;
+                                }
+                                write.Write(operand.Data.ToString()!, BoxedTextColor.AsmNumber);
+                                break;
+                            case InstructionSetIndependentOperand.OperandType.Memory:
                             case InstructionSetIndependentOperand.OperandType.StackOffset:
-                                write.Write(operand.Data.ToString(), BoxedTextColor.AsmNumber);
+                                write.Write(operand.Data.ToString()!, BoxedTextColor.AsmNumber);
                                 break;
                             case InstructionSetIndependentOperand.OperandType.Register:
-                                write.Write(operand.Data.ToString(), BoxedTextColor.AsmRegister);
+                                write.Write(operand.Data.ToString()!, BoxedTextColor.AsmRegister);
                                 break;
                             default:
-                                write.Write(operand.Data.ToString(), BoxedTextColor.White);
+                                write.Write(operand.Data.ToString()!, BoxedTextColor.Local);
                                 break;
                         }
-                        
+                            
                         if (index != len)
-                            write.Write(", ", BoxedTextColor.White);
+                            write.Write(", ", BoxedTextColor.Local);
                     }
                     write.WriteLine();
                 }
             }
-            catch(Exception e)
-            {
-                write.WriteLine($"Exception!\n{e}", BoxedTextColor.DarkGreen);
-            }
+        }
+        catch(Exception e)
+        {
+            write.WriteLine($"Exception!\n{e}", BoxedTextColor.DarkGreen);
         }
         write.DecreaseIndent();
-        return true;
+    }
+
+    private void RenderPseudoSharp(IDecompileNodeContext context)
+    {
+        var write = context.Output;
+        var def = Context.Definition!;
+        write.Write(def.Attributes.HasFlag(MethodAttributes.Public) ? "public " : "private ", BoxedTextColor.Keyword);
+        write.Write(def.IsStatic ? "static " : string.Empty, BoxedTextColor.Keyword);
+        write.Write(def.ReturnType?.ToString() ?? string.Empty, BoxedTextColor.Type);
+        write.Write(" ", BoxedTextColor.Local);
+        write.Write(def.Name ?? string.Empty, def.IsStatic ? BoxedTextColor.StaticMethod : BoxedTextColor.InstanceMethod);
+        write.Write("(", BoxedTextColor.Local);
+        if (def.Parameters != null)
+        {
+            bool first = true;
+            foreach (var parameter in def.Parameters)
+            {
+                if (!first)
+                    write.Write(", ", BoxedTextColor.Local);
+                write.Write(parameter.Type.ToString(), BoxedTextColor.Type);
+                write.Write(" ", BoxedTextColor.Local);
+                write.Write(parameter.ParameterName, BoxedTextColor.Local);
+                first = false;
+            }
+        }
+        write.WriteLine(")", BoxedTextColor.Local);
+        
+        write.WriteLine("{", BoxedTextColor.Local);
+        write.IncreaseIndent();
+        
+        try
+        {
+            Context.Analyze();
+            
+            if (Context.ConvertedIsil == null || Context.ConvertedIsil.Count == 0)
+            {
+                write.WriteLine("// No ISIL was generated", BoxedTextColor.DarkGreen);
+            }
+            else
+            {
+                var lifted = IsilLifter.Lift(Context);
+                for (var i = 0; i < lifted.Count; i++)
+                {
+                    lifted[i].Write(write);
+                }
+            }
+        }
+        catch(Exception e)
+        {
+            write.WriteLine($"{e}", BoxedTextColor.DarkGreen);
+        }
+        
+        write.DecreaseIndent();
+        write.WriteLine("}", BoxedTextColor.Local);
     }
 }

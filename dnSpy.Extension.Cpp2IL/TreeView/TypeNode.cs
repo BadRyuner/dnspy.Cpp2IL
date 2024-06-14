@@ -19,7 +19,7 @@ public class TypeNode : DsDocumentNode, IDecompileSelf
         Context = context;
     }
 
-    public readonly TypeAnalysisContext Context;
+    public new readonly TypeAnalysisContext Context;
 
     public TreeNodeData[] GetTreeNodeData
     {
@@ -64,12 +64,30 @@ public class TypeNode : DsDocumentNode, IDecompileSelf
 
     public bool Decompile(IDecompileNodeContext context)
     {
+        var write = context.Output;
+
+        if (context.Decompiler.GenericNameUI == "IL")
+        {
+            write.WriteLine($".type {Context.Name} : {Context.BaseType?.Name}", BoxedTextColor.Type);
+        }
+        else
+        {
+            write.Write(Context.IsValueType ? "struct " : "class ", BoxedTextColor.Keyword);
+            write.Write(Context.Name, BoxedTextColor.Type);
+            write.Write(" : ", BoxedTextColor.Local);
+            write.WriteLine(Context.BaseType?.Name ?? string.Empty, BoxedTextColor.Type);
+        }
+        write.WriteLine("{", BoxedTextColor.Local);
+        
+        write.IncreaseIndent();
         foreach (var node in GetTreeNodeData)
         {
             if (node is IDecompileSelf decompileSelf)
                 decompileSelf.Decompile(context);
-            context.Output.WriteLine();
+            write.WriteLine();
         }
+        write.DecreaseIndent();
+        write.WriteLine("}", BoxedTextColor.Local);
 
         return true;
     }

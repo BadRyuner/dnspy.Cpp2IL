@@ -32,7 +32,7 @@ public sealed class Cpp2ILDocument : DsDocument
     {
         var fileInfo = new FileInfo(filePath);
         _key = new FilenameKey(filePath);
-        FilePath = fileInfo.Name;
+        FilePath = filePath;
         RuntimeArgs = new();
         if (filePath.EndsWith(".dll"))
         {
@@ -40,7 +40,6 @@ public sealed class Cpp2ILDocument : DsDocument
             var dataFolder = fileInfo.Directory.GetDirectories()
                 .First(d => d.Name.EndsWith("_Data"));
             var gameExe = dataFolder.Name.Replace("_Data", null);
-            FilePath = gameExe;
             FileHelper.ResolvePathsFromCommandLine(gameFolder, gameExe, ref RuntimeArgs);
         }
         else
@@ -49,24 +48,6 @@ public sealed class Cpp2ILDocument : DsDocument
         }
         Cpp2IlApi.InitializeLibCpp2Il(RuntimeArgs.PathToAssembly, RuntimeArgs.PathToMetadata, RuntimeArgs.UnityVersion);
         Context = Cpp2IlApi.CurrentAppContext!;
-        TryFillData();
-    }
-
-    private void TryFillData()
-    {
-        var methodDefs = Context.Metadata.methodDefs;
-        for (var index = 0; index < methodDefs.Length; index++)
-        {
-            var methodDef = methodDefs[index];
-            try
-            {
-                MethodByRva.Add(methodDef.MethodPointer, methodDef);
-            }
-            catch
-            {
-                // ignored
-            }
-        }
     }
 
     public override DsDocumentInfo? SerializedDocument => new DsDocumentInfo(FilePath, MyGuid);
@@ -133,6 +114,7 @@ public sealed class Cpp2ILDocumentNode : DsDocumentNode, IDecompileSelf
         object color = TextColor.Green;
         writer.WriteLine($"Metadata Version: {ctx.MetadataVersion}", color);
         writer.WriteLine($"Is 32 bit: {ctx.Metadata.is32Bit}", color);
+        writer.WriteLine($"Used instruction set: {ctx.InstructionSet.GetType().FullName}", color);
         return true;
     }
 }
