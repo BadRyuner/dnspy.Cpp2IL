@@ -30,7 +30,9 @@ public static class FileHelper
         ProcessingLayerRegistry.Register<StableRenamingProcessingLayer>();
         ProcessingLayerRegistry.Register<DeobfuscationMapProcessingLayer>();
         #if NET6_0_OR_GREATER
-        NativeLibrary.Load(typeof(FileHelper).Assembly.Location.Replace("dnSpy.Extension.Cpp2IL.x.dll", "capstone.dll"));
+        var path = typeof(FileHelper).Assembly.Location.Replace("dnSpy.Extension.Cpp2IL.x.dll", "capstone.dll");
+        if (File.Exists(path))
+            NativeLibrary.TryLoad(path, out _);
         #endif
     }
     
