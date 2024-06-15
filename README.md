@@ -5,7 +5,10 @@ Gives possibility to open Il2Cpp builds in DnSpy! Just drag GameAssemblies.dll t
 2) Copy all dlls to dnSpyInstallFolder/Extensions/
 3) Enjoy!
 # Plugin in action
-![image](https://github.com/BadRyuner/dnspy.Cpp2IL/assets/54708336/a2f04951-eb13-4f57-ae12-947f8a4ea4d2)
+- ISIL
+![image](https://github.com/BadRyuner/dnspy.Cpp2IL/assets/54708336/bf3cc9c7-dc51-4205-8a0f-988591c16152)
+- Pseudo C#
+![image](https://github.com/BadRyuner/dnspy.Cpp2IL/assets/54708336/d7dd7430-df74-4905-a5d4-b7b321989829)
 # Credits
 - SamboyCoding for Cpp2IL
 - ElektroKill for dnSpyEx
