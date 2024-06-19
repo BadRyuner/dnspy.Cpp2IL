@@ -9,13 +9,15 @@ using dnSpy.Contracts.TreeView;
 
 namespace Cpp2ILAdapter.TreeView;
 
-public class AssemblyNode : DsDocumentNode
+public class AssemblyNode : DsDocumentNode, IReflect
 {
     public static readonly Guid MyGuid = new("9aef0611-8979-428c-ae5c-5daba1af5cbe");
     
     public AssemblyNode(AssemblyAnalysisContext context, IDsDocument document) : base(document)
     {
         Context = context;
+        var grouped = Context.TopLevelTypes.GroupBy(_ => _.Namespace);
+        Children = grouped.Select(ns => new NamespaceNode(ns.ToArray(), Document)).ToArray();
     }
 
     public readonly AssemblyAnalysisContext Context;
@@ -28,10 +30,20 @@ public class AssemblyNode : DsDocumentNode
         output.Write(Context.CleanAssemblyName);
     }
 
-    public override IEnumerable<TreeNodeData> CreateChildren()
+    public readonly NamespaceNode[] Children;
+    
+    public override IEnumerable<TreeNodeData> CreateChildren() => Children;
+
+    public TypeNode? SearchType(TypeAnalysisContext context)
     {
-        var grouped = Context.TopLevelTypes.GroupBy(_ => _.Namespace);
-        foreach (var ns in grouped)
-            yield return new NamespaceNode(ns.ToArray(), Document);
+        for (var i = 0; i < Children.Length; i++)
+        {
+            var child = Children[i];
+            var result = child.SearchType(context);
+            if (result != null)
+                return result;
+        }
+
+        return null;
     }
 }

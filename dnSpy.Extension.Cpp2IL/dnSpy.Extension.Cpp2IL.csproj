@@ -12,11 +12,14 @@
 
     <ItemGroup>
         <ProjectReference Include="..\dnSpy\dnSpy\dnSpy.Contracts.DnSpy\dnSpy.Contracts.DnSpy.csproj" />
+        <ProjectReference Include="..\Echo\src\Core\Echo.Ast\Echo.Ast.csproj" />
+        <ProjectReference Include="..\Echo\src\Core\Echo.ControlFlow\Echo.ControlFlow.csproj" />
     </ItemGroup>
 
     <ItemGroup><!-- PackageReference Include="Samboy063.Cpp2IL.Core" Version="2022.1.0-pre-release.14" / -->
     
       <PackageReference Include="AssetRipper.Primitives" Version="2.1.0" />
+    
     
       <PackageReference Include="Iced" Version="1.21.0" />
     </ItemGroup>

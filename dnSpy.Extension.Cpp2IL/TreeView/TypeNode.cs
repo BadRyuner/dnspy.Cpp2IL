@@ -1,5 +1,6 @@
 ﻿using System.Linq;
 using Cpp2IL.Core.Model.Contexts;
+using Cpp2ILAdapter.References;
 using dnSpy.Contracts.Decompiler;
 using dnSpy.Contracts.Documents;
 using dnSpy.Contracts.Documents.Tabs.DocViewer;
@@ -10,13 +11,14 @@ using dnSpy.Contracts.TreeView;
 
 namespace Cpp2ILAdapter.TreeView;
 
-public class TypeNode : DsDocumentNode, IDecompileSelf
+public class TypeNode : DsDocumentNode, IDecompileSelf, IReflect
 {
     public static readonly Guid MyGuid = new("fe6cebe4-dbe5-47b4-a84e-b6a71757c413");
     
     public TypeNode(TypeAnalysisContext context, IDsDocument document) : base(document)
     {
         Context = context;
+        
     }
 
     public new readonly TypeAnalysisContext Context;
@@ -68,14 +70,25 @@ public class TypeNode : DsDocumentNode, IDecompileSelf
 
         if (context.Decompiler.GenericNameUI == "IL")
         {
-            write.WriteLine($".type {Context.Name} : {Context.BaseType?.Name}", BoxedTextColor.Type);
+            write.Write(".type ", BoxedTextColor.Keyword);
+            write.Write(Context.Name, BoxedTextColor.Type);
+            if (Context.BaseType != null)
+            {
+                write.Write(" : ", BoxedTextColor.Local);
+                write.Write(Context.BaseType.Name, new Cpp2ILTypeReference(Context.Definition?.RawBaseType), DecompilerReferenceFlags.None, BoxedTextColor.Type);
+            }
+            write.WriteLine();
         }
         else
         {
             write.Write(Context.IsValueType ? "struct " : "class ", BoxedTextColor.Keyword);
             write.Write(Context.Name, BoxedTextColor.Type);
-            write.Write(" : ", BoxedTextColor.Local);
-            write.WriteLine(Context.BaseType?.Name ?? string.Empty, BoxedTextColor.Type);
+            if (Context.BaseType != null)
+            {
+                write.Write(" : ", BoxedTextColor.Local);
+                write.Write(Context.BaseType.Name ?? string.Empty, new Cpp2ILTypeReference(Context.Definition?.RawBaseType), DecompilerReferenceFlags.None, BoxedTextColor.Type);
+            }
+            write.WriteLine();
         }
         write.WriteLine("{", BoxedTextColor.Local);
         
@@ -90,5 +103,24 @@ public class TypeNode : DsDocumentNode, IDecompileSelf
         write.WriteLine("}", BoxedTextColor.Local);
 
         return true;
+    }
+
+    public TypeNode? SearchType(TypeAnalysisContext context)
+    {
+        if (context.Definition == Context.Definition)
+            return this;
+
+        var types = GetTreeNodeData
+            .Where(_ => _ is TypeNode)
+            .Cast<TypeNode>();
+        
+        foreach (var typeNode in types)
+        {
+            var result = typeNode.SearchType(context);
+            if (result != null)
+                return result;
+        }
+        
+        return null;
     }
 }

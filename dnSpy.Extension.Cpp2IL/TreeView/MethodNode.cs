@@ -1,12 +1,15 @@
 ﻿using System.Reflection;
 using Cpp2IL.Core.ISIL;
 using Cpp2IL.Core.Model.Contexts;
+using Cpp2ILAdapter.References;
 using dnSpy.Contracts.Decompiler;
 using dnSpy.Contracts.Documents;
 using dnSpy.Contracts.Documents.Tabs.DocViewer;
 using dnSpy.Contracts.Documents.TreeView;
 using dnSpy.Contracts.Images;
 using dnSpy.Contracts.Text;
+using LibCpp2IL.BinaryStructures;
+using LibCpp2IL.Metadata;
 
 namespace Cpp2ILAdapter.TreeView;
 
@@ -43,7 +46,7 @@ public class MethodNode : DsDocumentNode, IDecompileSelf
     private void RenderIsil(IDecompileNodeContext context)
     {
         var write = context.Output;
-        write.WriteLine(Context.Definition!.HumanReadableSignature!, BoxedTextColor.Blue);
+        RenderHeader(context, Context.Definition!, true);
         write.IncreaseIndent();
         
         try
@@ -76,9 +79,9 @@ public class MethodNode : DsDocumentNode, IDecompileSelf
                                     if (Context.AppContext.MethodsByAddress.TryGetValue(methodPtr, out var methods))
                                     {
                                         var method = methods[0];
-                                        write.Write($"{method.DeclaringType?.FullName}::{method.Name}", BoxedTextColor.StaticMethod);
+                                        write.Write($"{method.DeclaringType?.FullName}::{method.Name}", new Cpp2ILMethodReference(method) , DecompilerReferenceFlags.None, BoxedTextColor.StaticMethod);
+                                        break;
                                     }
-                                    break;
                                 }
                                 write.Write(operand.Data.ToString()!, BoxedTextColor.AsmNumber);
                                 break;
@@ -112,27 +115,7 @@ public class MethodNode : DsDocumentNode, IDecompileSelf
     {
         var write = context.Output;
         var def = Context.Definition!;
-        write.Write(def.Attributes.HasFlag(MethodAttributes.Public) ? "public " : "private ", BoxedTextColor.Keyword);
-        write.Write(def.IsStatic ? "static " : string.Empty, BoxedTextColor.Keyword);
-        write.Write(def.ReturnType?.ToString() ?? string.Empty, BoxedTextColor.Type);
-        write.Write(" ", BoxedTextColor.Local);
-        write.Write(def.Name ?? string.Empty, def.IsStatic ? BoxedTextColor.StaticMethod : BoxedTextColor.InstanceMethod);
-        write.Write("(", BoxedTextColor.Local);
-        if (def.Parameters != null)
-        {
-            bool first = true;
-            foreach (var parameter in def.Parameters)
-            {
-                if (!first)
-                    write.Write(", ", BoxedTextColor.Local);
-                write.Write(parameter.Type.ToString(), BoxedTextColor.Type);
-                write.Write(" ", BoxedTextColor.Local);
-                write.Write(parameter.ParameterName, BoxedTextColor.Local);
-                first = false;
-            }
-        }
-        write.WriteLine(")", BoxedTextColor.Local);
-        
+        RenderHeader(context, def, false);
         write.WriteLine("{", BoxedTextColor.Local);
         write.IncreaseIndent();
         
@@ -149,7 +132,7 @@ public class MethodNode : DsDocumentNode, IDecompileSelf
                 var lifted = IsilLifter.Lift(Context);
                 for (var i = 0; i < lifted.Count; i++)
                 {
-                    lifted[i].Write(write);
+                    //lifted[i].Write(write);
                 }
             }
         }
@@ -160,5 +143,49 @@ public class MethodNode : DsDocumentNode, IDecompileSelf
         
         write.DecreaseIndent();
         write.WriteLine("}", BoxedTextColor.Local);
+    }
+
+    private void RenderHeader(IDecompileNodeContext context, Il2CppMethodDefinition def, bool isil)
+    {
+        var write = context.Output;
+        if (!isil)
+        {
+            write.Write("[", BoxedTextColor.Local);
+            write.Write("Rva", BoxedTextColor.DarkGreen);
+            write.Write("(", BoxedTextColor.Local);
+            write.Write($"0x{def.Rva:X2}", BoxedTextColor.Number);
+            write.WriteLine(")]", BoxedTextColor.Local);
+        }
+        write.Write(def.Attributes.HasFlag(MethodAttributes.Public) ? "public " : "private ", BoxedTextColor.Keyword);
+        write.Write(def.IsStatic ? "static " : string.Empty, BoxedTextColor.Keyword);
+        if (def.RawReturnType?.Type != Il2CppTypeEnum.IL2CPP_TYPE_VOID)
+            write.Write(def.ReturnType?.ToString() ?? string.Empty, new Cpp2ILTypeReference(def.RawReturnType), DecompilerReferenceFlags.None, BoxedTextColor.Type);
+        else
+            write.Write("void", BoxedTextColor.Keyword);
+        write.Write(" ", BoxedTextColor.Local);
+        write.Write(def.Name ?? string.Empty, def.IsStatic ? BoxedTextColor.StaticMethod : BoxedTextColor.InstanceMethod);
+        write.Write("(", BoxedTextColor.Local);
+        if (def.Parameters != null)
+        {
+            bool first = true;
+            foreach (var parameter in def.Parameters)
+            {
+                if (!first)
+                    write.Write(", ", BoxedTextColor.Local);
+                write.Write(parameter.Type.ToString(), new Cpp2ILTypeReference(parameter.RawType), DecompilerReferenceFlags.None, BoxedTextColor.Type);
+                write.Write(" ", BoxedTextColor.Local);
+                write.Write(parameter.ParameterName, BoxedTextColor.Local);
+                first = false;
+            }
+        }
+        write.Write(") ", BoxedTextColor.Local);
+
+        if (isil)
+        {
+            write.Write("at rva ", BoxedTextColor.White);
+            write.Write($"0x{def.Rva:X2}", BoxedTextColor.Number);
+        }
+        
+        write.WriteLine(string.Empty, BoxedTextColor.Local);
     }
 }

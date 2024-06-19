@@ -24,9 +24,6 @@ public sealed class Cpp2ILDocument : DsDocument
     public readonly ApplicationAnalysisContext Context;
 
     private readonly FilenameKey _key;
-
-    public readonly Dictionary<ulong, Il2CppMethodDefinition> MethodByRva = new(1024 * 8);
-    //public readonly Dictionary<ulong, FieldAnalysisContext> FieldByRva = new(1024 * 8);
     
     public Cpp2ILDocument(string filePath)
     {
@@ -81,13 +78,14 @@ internal sealed class Cpp2ILDocumentProvider : IDsDocumentProvider
     }
 }
 
-public sealed class Cpp2ILDocumentNode : DsDocumentNode, IDecompileSelf
+public sealed class Cpp2ILDocumentNode : DsDocumentNode, IDecompileSelf, IReflect
 {
     public static readonly Guid MyGuid = new("9aef0611-8979-428c-ae5c-5daba1af5cbe");
     
     public Cpp2ILDocumentNode(Cpp2ILDocument document) : base(document)
     {
         IlDocument = document;
+        Children = IlDocument.Context.Assemblies.Select(assembly => new AssemblyNode(assembly, Document)).ToArray();
     }
 
     public readonly Cpp2ILDocument IlDocument;
@@ -100,12 +98,9 @@ public sealed class Cpp2ILDocumentNode : DsDocumentNode, IDecompileSelf
         output.Write(IlDocument.FilePath);
     }
 
-    public override IEnumerable<TreeNodeData> CreateChildren()
-    {
-        var context = IlDocument.Context;
-        foreach (var assembly in context.Assemblies)
-            yield return new AssemblyNode(assembly, Document);
-    }
+    public readonly AssemblyNode[] Children;
+
+    public override IEnumerable<TreeNodeData> CreateChildren() => Children;
 
     public bool Decompile(IDecompileNodeContext context)
     {
@@ -116,6 +111,22 @@ public sealed class Cpp2ILDocumentNode : DsDocumentNode, IDecompileSelf
         writer.WriteLine($"Is 32 bit: {ctx.Metadata.is32Bit}", color);
         writer.WriteLine($"Used instruction set: {ctx.InstructionSet.GetType().FullName}", color);
         return true;
+    }
+
+    public TypeNode? SearchType(TypeAnalysisContext context)
+    {
+        if (context is GenericInstanceTypeAnalysisContext genericContext)
+            context = new TypeAnalysisContext(genericContext.GenericType.Definition, genericContext.DeclaringAssembly);
+        
+        for (var i = 0; i < Children.Length; i++)
+        {
+            var child = Children[i];
+            var result = child.SearchType(context);
+            if (result != null)
+                return result;
+        }
+
+        return null;
     }
 }
 

@@ -21,7 +21,6 @@ public static class FileHelper
         InstructionSetRegistry.RegisterInstructionSet<X86InstructionSet>(DefaultInstructionSets.X86_32);
         InstructionSetRegistry.RegisterInstructionSet<X86InstructionSet>(DefaultInstructionSets.X86_64);
         InstructionSetRegistry.RegisterInstructionSet<WasmInstructionSet>(DefaultInstructionSets.WASM);
-        InstructionSetRegistry.RegisterInstructionSet<ArmV7InstructionSet>(DefaultInstructionSets.ARM_V7);
         InstructionSetRegistry.RegisterInstructionSet<NewArmV8InstructionSet>(DefaultInstructionSets.ARM_V8);
         ProcessingLayerRegistry.Register<AttributeAnalysisProcessingLayer>();
         ProcessingLayerRegistry.Register<AttributeInjectorProcessingLayer>();
@@ -29,11 +28,6 @@ public static class FileHelper
         ProcessingLayerRegistry.Register<NativeMethodDetectionProcessingLayer>();
         ProcessingLayerRegistry.Register<StableRenamingProcessingLayer>();
         ProcessingLayerRegistry.Register<DeobfuscationMapProcessingLayer>();
-        #if NET6_0_OR_GREATER
-        var path = typeof(FileHelper).Assembly.Location.Replace("dnSpy.Extension.Cpp2IL.x.dll", "capstone.dll");
-        if (File.Exists(path))
-            NativeLibrary.TryLoad(path, out _);
-        #endif
     }
     
     public static void ResolvePathsFromCommandLine(string gamePath, string? inputExeName, ref Cpp2IlRuntimeArgs args)

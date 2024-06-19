@@ -1,5 +1,6 @@
 ﻿using System.Reflection;
 using Cpp2IL.Core.Model.Contexts;
+using Cpp2ILAdapter.References;
 using dnSpy.Contracts.Decompiler;
 using dnSpy.Contracts.Documents;
 using dnSpy.Contracts.Documents.Tabs.DocViewer;
@@ -30,29 +31,29 @@ public class FieldNode : DsDocumentNode, IDecompileSelf
         output.Write(Context.Name);
     }
 
-
     public bool Decompile(IDecompileNodeContext context)
     {
         var write = context.Output;
         if (context.Decompiler.GenericNameUI == "IL")
-            write.Write("field. ", BoxedTextColor.Blue);
-        write.Write(Context.FieldType!.Type switch
         {
-            Il2CppTypeEnum.IL2CPP_TYPE_I => "nint",
-            Il2CppTypeEnum.IL2CPP_TYPE_CLASS or Il2CppTypeEnum.IL2CPP_TYPE_VALUETYPE => Context.FieldType.AsClass()!.Name!,
-            Il2CppTypeEnum.IL2CPP_TYPE_I1 => "sbyte",
-            Il2CppTypeEnum.IL2CPP_TYPE_I2 => "short",
-            Il2CppTypeEnum.IL2CPP_TYPE_I4 => "int",
-            Il2CppTypeEnum.IL2CPP_TYPE_I8 => "long",
-            Il2CppTypeEnum.IL2CPP_TYPE_U => "nuint",
-            Il2CppTypeEnum.IL2CPP_TYPE_U1 => "byte",
-            Il2CppTypeEnum.IL2CPP_TYPE_U2 => "ushort",
-            Il2CppTypeEnum.IL2CPP_TYPE_U4 => "uint",
-            Il2CppTypeEnum.IL2CPP_TYPE_U8 => "ulong",
-            Il2CppTypeEnum.IL2CPP_TYPE_R4 => "float",
-            Il2CppTypeEnum.IL2CPP_TYPE_R8 => "double",
-            _ => "UnknownType"
-        }, BoxedTextColor.Blue);
+            write.Write("field. offset(", BoxedTextColor.Blue);
+            write.Write($"{Context.Offset:X2}", BoxedTextColor.AsmNumber);
+            write.Write(") ", BoxedTextColor.Blue);
+            write.Write(Context.IsStatic ? "static " : "instance ", BoxedTextColor.Blue);
+        }
+        else
+        {
+            write.Write("[", BoxedTextColor.Local);
+            write.Write("Offset", BoxedTextColor.Green);
+            write.Write("(", BoxedTextColor.Local);
+            write.Write($"{Context.Offset:X2}", BoxedTextColor.Number);
+            write.WriteLine(")]", BoxedTextColor.Local);
+            if (Context.Attributes.HasFlag(FieldAttributes.Public))
+                write.Write("public ", BoxedTextColor.Keyword);
+            if (Context.IsStatic)
+                write.Write("static ", BoxedTextColor.Keyword);
+        }
+        write.Write(Context.FieldType!.GetName(), new Cpp2ILTypeReference(Context.FieldType!), DecompilerReferenceFlags.None, BoxedTextColor.Blue);
         write.Write(" ", BoxedTextColor.Local);
         write.WriteLine(Context.FieldName, BoxedTextColor.Local);
         return true;
