@@ -64,7 +64,7 @@ public class MethodNode : DsDocumentNode, IDecompileSelf
                 var white = BoxedTextColor.Local;
                 foreach (var instruction in Context.ConvertedIsil)
                 {
-                    write.Write(instruction.InstructionIndex.ToString(), BoxedTextColor.AsmAddress);
+                    write.Write(instruction.InstructionIndex.ToString(), BoxedTextColor.AsmLabelAddress);
                     write.Write(" ", BoxedTextColor.Local);
                     write.Write(instruction.OpCode.Mnemonic.ToString(), BoxedTextColor.AsmMnemonic);
                     write.Write(" ", BoxedTextColor.Local);
@@ -134,7 +134,7 @@ public class MethodNode : DsDocumentNode, IDecompileSelf
                 var lifted = IsilLifter.Lift(Context, Document);
                 for (var i = 0; i < lifted.Count; i++)
                 {
-                    //lifted[i].Write(write);
+                    lifted[i].Write(write, true);
                 }
             }
         }

@@ -28,12 +28,19 @@ sealed class Cpp2ILTreeNodeDataFinder : IDocumentTreeNodeDataFinder
         
         switch (@ref)
         {
+            case Cpp2ILTypeDefReference typeDefReference:
+            {
+                if (typeDefReference.Type == null)
+                    return null;
+
+                return TypeSearch(null, typeDefReference.Type, documentNode);
+            }
             case Cpp2ILTypeReference typeReference:
             {
                 if (typeReference.Type == null)
                     return null;
                 
-                return TypeSearch(typeReference.Type, documentNode);
+                return TypeSearch(typeReference.Type, null, documentNode);
             }
             case Cpp2ILMethodReference methodReference:
             {
@@ -49,12 +56,12 @@ sealed class Cpp2ILTreeNodeDataFinder : IDocumentTreeNodeDataFinder
         }
     }
 
-    private static TypeNode? TypeSearch(Il2CppType? typeReference, Cpp2ILDocumentNode documentNode)
+    private static TypeNode? TypeSearch(Il2CppType? typeReference, Il2CppTypeDefinition? typeDef, Cpp2ILDocumentNode documentNode)
     {
-        if (typeReference == null)
+        if (typeReference == null && typeDef == null)
             return null;
         
-        Il2CppTypeDefinition? type = typeReference.ToTypeDefinition();
+        Il2CppTypeDefinition? type = typeDef ?? typeReference.ToTypeDefinition();
         string? typeNamespace = null;
         string? typeName = null;
 

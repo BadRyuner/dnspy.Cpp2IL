@@ -318,18 +318,15 @@ public sealed class IsilArchitecture : IArchitecture<InstructionSetIndependentIn
     {
         if (Document.Context.InstructionSet is NewArmV8InstructionSet)
         {
-            if (method.Definition!.RawReturnType!.Type is Il2CppTypeEnum.IL2CPP_TYPE_R4 or Il2CppTypeEnum.IL2CPP_TYPE_R8)
+            if (method.Definition?.RawReturnType?.Type is Il2CppTypeEnum.IL2CPP_TYPE_R4 or Il2CppTypeEnum.IL2CPP_TYPE_R8)
                 return V0;
-            else
-                return X0;
+            return X0;
         }
-        else // x64
-        {
-            if (method.Definition!.RawReturnType!.Type is Il2CppTypeEnum.IL2CPP_TYPE_R4 or Il2CppTypeEnum.IL2CPP_TYPE_R8)
-                return XMM0;
-            else
-                return RAX;
-        }
+
+        // x64
+        if (method.Definition?.RawReturnType?.Type is Il2CppTypeEnum.IL2CPP_TYPE_R4 or Il2CppTypeEnum.IL2CPP_TYPE_R8)
+            return XMM0;
+        return RAX;
     }
 
     private static readonly IsilVariable X0 = new(new IsilRegisterOperand("X0"));
