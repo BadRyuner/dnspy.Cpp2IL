@@ -29,9 +29,9 @@ public sealed class EmitBlock : IEmit
     
     public void Write(IDecompilerOutput output, bool end)
     {
-        if (_emitted) return;
+        //if (_emitted) return;
         _emitted = true;
-        if (ShouldEmitLabel)
+        if (ShouldEmitLabel | true)
         {
             output.DecreaseIndent();
             output.WriteLine(LabelStart + ':', BoxedTextColor.Label);
