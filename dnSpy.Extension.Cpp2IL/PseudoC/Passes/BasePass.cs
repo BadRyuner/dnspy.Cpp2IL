@@ -14,5 +14,5 @@ public abstract class BasePass
     
     public abstract void AcceptExpression(ref Expression expression);
     
-    public abstract void AcceptEmitBlock(EmitBlock block);
+    public abstract void AcceptBlock(Block block);
 }

@@ -38,6 +38,7 @@ public sealed record Expression(ExpressionKind Kind, IEmit? Left = null, IEmit? 
             case ExpressionKind.CompareGe:
             case ExpressionKind.CompareLt:
             case ExpressionKind.CompareLe:
+            case ExpressionKind.MemberAccess:
                 Left?.Write(output);
                 output.Write(GetOperator(Kind), BoxedTextColor.Operator);
                 Right?.Write(output);
@@ -92,7 +93,7 @@ public sealed record Expression(ExpressionKind Kind, IEmit? Left = null, IEmit? 
             case ExpressionKind.Call:
             {
                 var args = (InlineEmitBlock)Second!;
-                if (First is ManagedFunctionReference { method.IsStatic: false })
+                if (First is ManagedFunctionReference { Method.IsStatic: false })
                 {
                     args.StartIndex = 1;
                     args.Items[0].Write(output);
@@ -118,7 +119,7 @@ public sealed record Expression(ExpressionKind Kind, IEmit? Left = null, IEmit? 
             leftExpr.AcceptPass(pass);
         }
         
-        if (Second is EmitBlock block)
+        if (Second is Block block)
         {
             block.AcceptPass(pass);
         }
@@ -165,6 +166,7 @@ public sealed record Expression(ExpressionKind Kind, IEmit? Left = null, IEmit? 
             ExpressionKind.CompareGe => " >= ",
             ExpressionKind.CompareLt => " < ",
             ExpressionKind.CompareLe => " <= ",
+            ExpressionKind.MemberAccess => ".",
             _ => throw new NotImplementedException()
         };
     }   
@@ -186,4 +188,6 @@ public enum ExpressionKind : byte
     CompareEq, CompareNeq, 
     CompareGt, CompareGe, CompareLt, CompareLe,
     Goto,
+    
+    MemberAccess,
 }

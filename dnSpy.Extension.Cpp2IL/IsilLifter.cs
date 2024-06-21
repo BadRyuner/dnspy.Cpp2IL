@@ -41,6 +41,8 @@ public static class IsilLifter
         }
         
         new EmitBlockLinker().Start(result, context);
+        new CreateVariables().Start(result, context);
+        new DataFlowAnalysis().Start(result, context);
         
         return result;
     }

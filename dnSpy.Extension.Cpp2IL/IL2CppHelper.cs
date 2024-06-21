@@ -1,4 +1,6 @@
 ﻿using System.CodeDom;
+using System.Linq;
+using Cpp2IL.Core.Model.Contexts;
 using LibCpp2IL.BinaryStructures;
 using LibCpp2IL.Metadata;
 
@@ -56,5 +58,30 @@ public static class IL2CppHelper
             return null;
 
         return result;
+    }
+
+    public static FieldAnalysisContext? TryGetFieldAtOffset(ApplicationAnalysisContext context, object? obj, int offset)
+    {
+        if (obj == null) return null;
+        
+        if (obj is Il2CppType type)
+        {
+            if (type.Type is Il2CppTypeEnum.IL2CPP_TYPE_CLASS or Il2CppTypeEnum.IL2CPP_TYPE_VALUETYPE)
+            {
+                var resolved = type.AsClass();
+                return GetFieldAtOffset(context, resolved, offset);
+            }
+        }
+        else if (obj is Il2CppTypeDefinition typeDef)
+        {
+            return GetFieldAtOffset(context, typeDef, offset);
+        }
+
+        return null;
+    }
+
+    public static FieldAnalysisContext? GetFieldAtOffset(ApplicationAnalysisContext context, Il2CppTypeDefinition type, int offset)
+    {
+        return context.ResolveContextForType(type)?.Fields.FirstOrDefault(f => f.Offset == offset);
     }
 }

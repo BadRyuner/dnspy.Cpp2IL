@@ -26,21 +26,23 @@ public sealed record Register : Value
     
     public string Name { get; set; }
     public Il2CppTypeEnum Kind { get; set; }
-    public Il2CppType? Type { get; set; }
     public override void Write(IDecompilerOutput output, bool end = false)
     {
         output.Write(Name, BoxedTextColor.Local);
     }
 }
 
-public sealed record Variable(string Name, Il2CppTypeEnum Kind = Il2CppTypeEnum.IL2CPP_TYPE_I4) : Value
+public sealed record Variable(string Name) : Value
 {
     public string Name { get; set; } = Name;
-    public Il2CppTypeEnum Kind { get; set; } = Kind;
-    public Il2CppType? Type { get; set; }
+    /// <summary>
+    /// IL2CppType or IL2CppDefinition
+    /// </summary>
+    public object? Type { get; set; }
+    public bool IsKeyword = false;
     public override void Write(IDecompilerOutput output, bool end = false)
     {
-        output.Write(Name, BoxedTextColor.Local);
+        output.Write(Name, IsKeyword ? BoxedTextColor.Keyword : BoxedTextColor.Local);
     }
 }
 
@@ -68,21 +70,21 @@ public sealed record LoadString(string Text) : Value
     }
 }
 
-public sealed record ManagedFunctionReference(MethodAnalysisContext method) : Value
+public sealed record ManagedFunctionReference(MethodAnalysisContext Method) : Value
 {
     public override void Write(IDecompilerOutput output, bool end = false)
     {
-        if (method.IsStatic)
+        if (Method.IsStatic)
         {
-            output.Write(method.DeclaringType?.FullName ?? "unknownType", 
-                new Cpp2ILTypeDefReference(method.DeclaringType?.Definition), DecompilerReferenceFlags.None, BoxedTextColor.Type);
+            output.Write(Method.DeclaringType?.FullName ?? "unknownType", 
+                new Cpp2ILTypeDefReference(Method.DeclaringType?.Definition), DecompilerReferenceFlags.None, BoxedTextColor.Type);
             output.Write(".", BoxedTextColor.Punctuation);
         }
-        output.Write(method.Name, new Cpp2ILMethodReference(method), DecompilerReferenceFlags.None, BoxedTextColor.InstanceMethod);
+        output.Write(Method.Name, new Cpp2ILMethodReference(Method), DecompilerReferenceFlags.None, BoxedTextColor.InstanceMethod);
     }
 }
 
-public sealed record UnmanagedFunctionReference(ulong addr) : Value
+public sealed record UnmanagedFunctionReference(ulong Addr) : Value
 {
     public override void Write(IDecompilerOutput output, bool end = false)
     {
@@ -90,7 +92,15 @@ public sealed record UnmanagedFunctionReference(ulong addr) : Value
         output.Write("delegate", BoxedTextColor.Keyword);
         output.Write("* <...>", BoxedTextColor.Punctuation);
         output.Write(")", BoxedTextColor.Punctuation);
-        output.Write($"{addr:X2}", BoxedTextColor.Number);
+        output.Write($"{Addr:X2}", BoxedTextColor.Number);
         output.Write(")", BoxedTextColor.Punctuation);
+    }
+}
+
+public sealed record AccessField(FieldAnalysisContext Field) : Value
+{
+    public override void Write(IDecompilerOutput output, bool end = false)
+    {
+        output.Write(Field.Name, new Cpp2ILFieldReference(Field), DecompilerReferenceFlags.None, BoxedTextColor.InstanceField);
     }
 }

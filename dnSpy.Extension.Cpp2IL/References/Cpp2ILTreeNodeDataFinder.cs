@@ -5,6 +5,7 @@ using dnSpy.Contracts.Documents.TreeView;
 using LibCpp2IL;
 using LibCpp2IL.BinaryStructures;
 using LibCpp2IL.Metadata;
+using FieldNode = Cpp2ILAdapter.TreeView.FieldNode;
 using MethodNode = Cpp2ILAdapter.TreeView.MethodNode;
 using NamespaceNode = Cpp2ILAdapter.TreeView.NamespaceNode;
 using TypeNode = Cpp2ILAdapter.TreeView.TypeNode;
@@ -50,6 +51,15 @@ sealed class Cpp2ILTreeNodeDataFinder : IDocumentTreeNodeDataFinder
                     return null;
                 return typeNode.TreeNode.DataChildren
                     .FirstOrDefault(c => c is MethodNode node && node.Context.UnderlyingPointer == method.UnderlyingPointer) as MethodNode;
+            }
+            case Cpp2ILFieldReference fieldReference:
+            {
+                var field = fieldReference.Field;
+                var typeNode = documentNode.SearchType(field.DeclaringType!);
+                if (typeNode == null)
+                    return null;
+                return typeNode.TreeNode.DataChildren
+                    .FirstOrDefault(c => c is FieldNode node && node.Context.Name == field.Name) as FieldNode;
             }
             default:
                 return null;

@@ -11,7 +11,30 @@ public interface IEmit
     void Write(IDecompilerOutput output, bool end = false);
 }
 
-public sealed class EmitBlock : IEmit
+public abstract class Block : IEmit
+{
+    public readonly List<IEmit> Items = new(2);
+    public void Add(IEmit item) => Items.Add(item);
+    
+    public abstract void Write(IDecompilerOutput output, bool end);
+    
+    public void AcceptPass(BasePass pass)
+    {
+        pass.AcceptBlock(this);
+        var items = CollectionsMarshal.AsSpan(Items);
+        for (var i = 0; i < Items.Count; i++)
+        {
+            var item = items[i];
+            if (item is Expression expr)
+            {
+                expr.AcceptPass(pass);
+                pass.AcceptExpression(ref Unsafe.As<IEmit, Expression>(ref items[i]));
+            }
+        }
+    }
+}
+
+public sealed class EmitBlock : Block
 {
     public EmitBlock(uint index)
     {
@@ -24,10 +47,8 @@ public sealed class EmitBlock : IEmit
     public bool ShouldEmitLabel => ReferencesCount > 1;
     private bool _emitted = false;
     public ushort ReferencesCount = 0;
-    public readonly List<IEmit> Items = new(2);
-    public void Add(IEmit item) => Items.Add(item);
     
-    public void Write(IDecompilerOutput output, bool end)
+    public override void Write(IDecompilerOutput output, bool end)
     {
         //if (_emitted) return;
         _emitted = true;
@@ -42,24 +63,9 @@ public sealed class EmitBlock : IEmit
             Items[i].Write(output, true);
         }
     }
-
-    public void AcceptPass(BasePass pass)
-    {
-        pass.AcceptEmitBlock(this);
-        var items = CollectionsMarshal.AsSpan(Items);
-        for (var i = 0; i < Items.Count; i++)
-        {
-            var item = items[i];
-            if (item is Expression expr)
-            {
-                pass.AcceptExpression(ref Unsafe.As<IEmit, Expression>(ref items[i]));
-                expr.AcceptPass(pass);
-            }
-        }
-    }
 }
 
-public sealed class InlineEmitBlock : IEmit
+public sealed class InlineEmitBlock : Block
 {
     public InlineEmitBlock(string delimiter)
     {
@@ -68,9 +74,7 @@ public sealed class InlineEmitBlock : IEmit
 
     public int StartIndex = 0;
     public readonly string Delimiter;
-    public readonly List<IEmit> Items = new(1);
-    public void Add(IEmit item) => Items.Add(item);
-    public void Write(IDecompilerOutput output, bool end)
+    public override void Write(IDecompilerOutput output, bool end)
     {
         var len = Items.Count - 1;
         for (var i = StartIndex; i <= len; i++)

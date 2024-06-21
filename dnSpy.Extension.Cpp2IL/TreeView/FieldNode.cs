@@ -37,7 +37,7 @@ public class FieldNode : DsDocumentNode, IDecompileSelf
         if (context.Decompiler.GenericNameUI == "IL")
         {
             write.Write("field. offset(", BoxedTextColor.Blue);
-            write.Write($"{Context.Offset:X2}", BoxedTextColor.AsmNumber);
+            write.Write($"0x{Context.Offset:X2}", BoxedTextColor.AsmNumber);
             write.Write(") ", BoxedTextColor.Blue);
             write.Write(Context.IsStatic ? "static " : "instance ", BoxedTextColor.Blue);
         }
@@ -46,7 +46,7 @@ public class FieldNode : DsDocumentNode, IDecompileSelf
             write.Write("[", BoxedTextColor.Local);
             write.Write("Offset", BoxedTextColor.Green);
             write.Write("(", BoxedTextColor.Local);
-            write.Write($"{Context.Offset:X2}", BoxedTextColor.Number);
+            write.Write($"0x{Context.Offset:X2}", BoxedTextColor.Number);
             write.WriteLine(")]", BoxedTextColor.Local);
             if (Context.Attributes.HasFlag(FieldAttributes.Public))
                 write.Write("public ", BoxedTextColor.Keyword);

@@ -39,14 +39,14 @@ public sealed class EmitBlockLinker : BasePass
         }
         else if (_phase == 2)
         {
-            if (block!.ReferencesCount <= 1)
-                expression = Unsafe.As<EmitBlock, Expression>(ref block);
+            //if (block!.ReferencesCount <= 1)
+            //    expression = Unsafe.As<EmitBlock, Expression>(ref block);
         }
     }
 
-    public override void AcceptEmitBlock(EmitBlock block)
+    public override void AcceptBlock(Block block)
     {
-        if (_phase == 0)
-            _blocks.Add(block);
+        if (_phase == 0 && block is EmitBlock emitBlock)
+            _blocks.Add(emitBlock);
     }
 }
