@@ -1,8 +1,6 @@
 ﻿using System.Linq;
-using Cpp2IL.Core.Extensions;
 using Cpp2ILAdapter.TreeView;
 using dnSpy.Contracts.Documents.TreeView;
-using LibCpp2IL;
 using LibCpp2IL.BinaryStructures;
 using LibCpp2IL.Metadata;
 using FieldNode = Cpp2ILAdapter.TreeView.FieldNode;
@@ -55,7 +53,7 @@ sealed class Cpp2ILTreeNodeDataFinder : IDocumentTreeNodeDataFinder
             case Cpp2ILFieldReference fieldReference:
             {
                 var field = fieldReference.Field;
-                var typeNode = documentNode.SearchType(field.DeclaringType!);
+                var typeNode = documentNode.SearchType(field.DeclaringType);
                 if (typeNode == null)
                     return null;
                 return typeNode.TreeNode.DataChildren
@@ -72,8 +70,8 @@ sealed class Cpp2ILTreeNodeDataFinder : IDocumentTreeNodeDataFinder
             return null;
         
         Il2CppTypeDefinition? type = typeDef ?? typeReference.ToTypeDefinition();
-        string? typeNamespace = null;
-        string? typeName = null;
+        string? typeNamespace;
+        string? typeName;
 
         if (type != null)
         {
@@ -82,7 +80,7 @@ sealed class Cpp2ILTreeNodeDataFinder : IDocumentTreeNodeDataFinder
         }
         else
         {
-            (typeNamespace, typeName) = typeReference.Type switch
+            (typeNamespace, typeName) = typeReference?.Type switch
             {
                 Il2CppTypeEnum.IL2CPP_TYPE_OBJECT => ("System", "Object"),
                 Il2CppTypeEnum.IL2CPP_TYPE_STRING => ("System", "String"),
@@ -141,8 +139,10 @@ sealed class Cpp2ILTreeNodeDataFinder : IDocumentTreeNodeDataFinder
             if (type != null ? def == type : def!.Name == name)
                 return typeNode;
             typeNode.TreeNode.EnsureChildrenLoaded();
-            var nested = typeNode.GetTreeNodeData.Where(_ => _ is TypeNode).Cast<TypeNode>();
+            var nested = typeNode.GetTreeNodeData.Where(treeNodeData => treeNodeData is TypeNode).Cast<TypeNode>();
             var nestedResult = RecursiveTypeSearch(nested, type, name);
+            if (nestedResult != null)
+                return nestedResult;
         }
 
         return null;

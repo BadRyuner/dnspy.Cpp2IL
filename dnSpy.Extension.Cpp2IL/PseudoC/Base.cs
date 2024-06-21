@@ -45,13 +45,13 @@ public sealed class EmitBlock : Block
     public readonly uint Index;
     public readonly string LabelStart;
     public bool ShouldEmitLabel => ReferencesCount > 1;
-    private bool _emitted = false;
+    //private bool _emitted = false;
     public ushort ReferencesCount = 0;
     
     public override void Write(IDecompilerOutput output, bool end)
     {
         //if (_emitted) return;
-        _emitted = true;
+        //_emitted = true;
         if (ShouldEmitLabel | true)
         {
             output.DecreaseIndent();
@@ -79,7 +79,7 @@ public sealed class InlineEmitBlock : Block
         var len = Items.Count - 1;
         for (var i = StartIndex; i <= len; i++)
         {
-            Items[i].Write(output, false);
+            Items[i].Write(output);
             if (i != len)
                 output.Write(Delimiter, BoxedTextColor.Punctuation);
         }

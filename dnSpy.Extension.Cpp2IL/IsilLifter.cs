@@ -8,6 +8,7 @@ using Cpp2ILAdapter.PseudoC.Passes;
 using Cpp2ILAdapter.TreeView;
 using Echo.ControlFlow.Construction.Static;
 using Echo.ControlFlow.Serialization.Blocks;
+using LibCpp2IL;
 using LibCpp2IL.BinaryStructures;
 
 namespace Cpp2ILAdapter;
@@ -148,7 +149,14 @@ public static class IsilLifter
         switch (operand.Type)
         {
             case InstructionSetIndependentOperand.OperandType.Immediate:
-                return new Immediate(((IsilImmediateOperand)operand.Data).Value);
+            {
+                var value = ((IsilImmediateOperand)operand.Data).Value;
+                var ptr = value.ToUInt64(CultureInfo.InvariantCulture);
+                var reference = LibCpp2IlMain.GetAnyGlobalByAddress(ptr);
+                if (reference is { IsValid: true })
+                    return new MetadataReference(reference);
+                return new Immediate(value);
+            }
             case InstructionSetIndependentOperand.OperandType.Register:
                 return new Register(((IsilRegisterOperand)operand.Data).RegisterName);
             case InstructionSetIndependentOperand.OperandType.Instruction:

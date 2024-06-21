@@ -1,5 +1,4 @@
-﻿using System.Runtime.CompilerServices;
-using Cpp2IL.Core.Model.Contexts;
+﻿using Cpp2IL.Core.Model.Contexts;
 
 namespace Cpp2ILAdapter.PseudoC.Passes;
 

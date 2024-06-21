@@ -1,12 +1,13 @@
 ﻿using System.Globalization;
 using Cpp2IL.Core.Model.Contexts;
+using LibCpp2IL.BinaryStructures;
 
 namespace Cpp2ILAdapter.PseudoC.Passes;
 
 public class DataFlowAnalysis : BasePass
 {
     private bool _success;
-    private ApplicationAnalysisContext _context;
+    private ApplicationAnalysisContext _context = null!;
     
     public override void Start(List<EmitBlock> blocks, MethodAnalysisContext context)
     {
@@ -53,7 +54,24 @@ public class DataFlowAnalysis : BasePass
                 assignVar.Type = accessField.FieldType;
                 _success = true;
             }
-            return;
+        }
+
+        if (expression is
+            {
+                Kind: ExpressionKind.Assign,
+                Left: Variable retValue,
+                Right: Expression
+                {
+                    Kind: ExpressionKind.Call,
+                    Left: ManagedFunctionReference { } method
+                }
+            })
+        {
+            if (retValue.Type == null && method.Method.Definition is { RawReturnType: Il2CppType { } retType })
+            {
+                retValue.Type = retType;
+                _success = true;
+            }
         }
     }
 

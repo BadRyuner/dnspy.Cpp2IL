@@ -80,8 +80,15 @@ public static class IL2CppHelper
         return null;
     }
 
-    public static FieldAnalysisContext? GetFieldAtOffset(ApplicationAnalysisContext context, Il2CppTypeDefinition type, int offset)
+    public static FieldAnalysisContext? GetFieldAtOffset(ApplicationAnalysisContext context, Il2CppTypeDefinition? type, int offset)
     {
-        return context.ResolveContextForType(type)?.Fields.FirstOrDefault(f => f.Offset == offset);
+        if (type == null)
+            return null;
+        
+        var result = context.ResolveContextForType(type)?.Fields.FirstOrDefault(f => f.Offset == offset);
+        if (result != null)
+            return result;
+
+        return GetFieldAtOffset(context, type.BaseType?.baseType, offset);
     }
 }

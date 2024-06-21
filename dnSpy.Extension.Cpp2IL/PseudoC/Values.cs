@@ -4,8 +4,7 @@ using Cpp2IL.Core.Model.Contexts;
 using Cpp2ILAdapter.References;
 using dnSpy.Contracts.Decompiler;
 using dnSpy.Contracts.Text;
-using LibCpp2IL.BinaryStructures;
-using LibCpp2IL.Metadata;
+using LibCpp2IL;
 
 namespace Cpp2ILAdapter.PseudoC;
 
@@ -16,16 +15,14 @@ public abstract record Value : IEmit
 
 public sealed record Register : Value
 {
-    public Register(string name, Il2CppTypeEnum kind = Il2CppTypeEnum.IL2CPP_TYPE_I4)
+    public Register(string name)
     {
         if (name == "X31")
             name = "Stack";
         Name = name;
-        Kind = kind;
     }
     
     public string Name { get; set; }
-    public Il2CppTypeEnum Kind { get; set; }
     public override void Write(IDecompilerOutput output, bool end = false)
     {
         output.Write(Name, BoxedTextColor.Local);
@@ -42,7 +39,7 @@ public sealed record Variable(string Name) : Value
     public bool IsKeyword = false;
     public override void Write(IDecompilerOutput output, bool end = false)
     {
-        output.Write(Name, IsKeyword ? BoxedTextColor.Keyword : BoxedTextColor.Local);
+        output.Write(Name, new Cpp2IlVariableReference(this), DecompilerReferenceFlags.None, IsKeyword ? BoxedTextColor.Keyword : BoxedTextColor.Local);
     }
 }
 
@@ -102,5 +99,13 @@ public sealed record AccessField(FieldAnalysisContext Field) : Value
     public override void Write(IDecompilerOutput output, bool end = false)
     {
         output.Write(Field.Name, new Cpp2ILFieldReference(Field), DecompilerReferenceFlags.None, BoxedTextColor.InstanceField);
+    }
+}
+
+public sealed record MetadataReference(MetadataUsage Metadata) : Value
+{
+    public override void Write(IDecompilerOutput output, bool end = false)
+    {
+        output.Write($"/* TODO: MetadataReference: type - {Metadata.Type}; value - {Metadata.Type} */", BoxedTextColor.Comment);
     }
 }
