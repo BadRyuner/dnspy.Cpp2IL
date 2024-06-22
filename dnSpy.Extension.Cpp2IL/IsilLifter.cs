@@ -41,9 +41,11 @@ public static class IsilLifter
             result.Add(emitBlock);
         }
         
-        new EmitBlockLinker().Start(result, context);
+        //new EmitBlockLinker().Start(result, context);
         new CreateVariables().Start(result, context);
-        new DataFlowAnalysis().Start(result, context);
+        var dataFlowAnalysis = new DataFlowAnalysis();
+        dataFlowAnalysis.Start(result, context);
+        new ExpressionInliner().Start(result, context);
         
         return result;
     }
@@ -54,33 +56,33 @@ public static class IsilLifter
         switch (instruction.OpCode.Mnemonic)
         {
             case IsilMnemonic.Move:
-                return new Expression(ExpressionKind.Assign, TransformOperand(operands[0]), TransformOperand(operands[1]));
+                return new Expression(ExpressionKind.Assign, TransformOperand(operands[0]), TransformOperand(operands[1]), instruction.InstructionIndex);
             case IsilMnemonic.And:
-                return new Expression(ExpressionKind.Assign, TransformOperand(operands[0]), new Expression(ExpressionKind.And, TransformOperand(operands[1]), TransformOperand(operands[2])));
+                return new Expression(ExpressionKind.Assign, TransformOperand(operands[0]), new Expression(ExpressionKind.And, TransformOperand(operands[1]), TransformOperand(operands[2]), instruction.InstructionIndex), instruction.InstructionIndex);
             case IsilMnemonic.Or:
-                return new Expression(ExpressionKind.Assign, TransformOperand(operands[0]), new Expression(ExpressionKind.Or, TransformOperand(operands[0]), TransformOperand(operands[1])));
+                return new Expression(ExpressionKind.Assign, TransformOperand(operands[0]), new Expression(ExpressionKind.Or, TransformOperand(operands[1]), TransformOperand(operands[2]), instruction.InstructionIndex), instruction.InstructionIndex);
             case IsilMnemonic.Xor:
-                return new Expression(ExpressionKind.Assign, TransformOperand(operands[0]), new Expression(ExpressionKind.Xor, TransformOperand(operands[0]), TransformOperand(operands[1])));
+                return new Expression(ExpressionKind.Assign, TransformOperand(operands[0]), new Expression(ExpressionKind.Xor, TransformOperand(operands[1]), TransformOperand(operands[2]), instruction.InstructionIndex), instruction.InstructionIndex);
             case IsilMnemonic.Compare:
-                return new Expression(ExpressionKind.Compare, TransformOperand(operands[0]), TransformOperand(operands[1]));
+                return new Expression(ExpressionKind.Compare, TransformOperand(operands[0]), TransformOperand(operands[1]), instruction.InstructionIndex);
             case IsilMnemonic.Add:
-                return new Expression(ExpressionKind.Assign, TransformOperand(operands[0]), new Expression(ExpressionKind.Add, TransformOperand(operands[1]), TransformOperand(operands[2])));
+                return new Expression(ExpressionKind.Assign, TransformOperand(operands[0]), new Expression(ExpressionKind.Add, TransformOperand(operands[1]), TransformOperand(operands[2]), instruction.InstructionIndex), instruction.InstructionIndex);
             case IsilMnemonic.Subtract:
-                return new Expression(ExpressionKind.Assign, TransformOperand(operands[0]), new Expression(ExpressionKind.Sub, TransformOperand(operands[0]), TransformOperand(operands[1])));
+                return new Expression(ExpressionKind.Assign, TransformOperand(operands[0]), new Expression(ExpressionKind.Sub, TransformOperand(operands[1]), TransformOperand(operands[2]), instruction.InstructionIndex), instruction.InstructionIndex);
             case IsilMnemonic.Multiply:
-                return new Expression(ExpressionKind.Assign, TransformOperand(operands[0]), new Expression(ExpressionKind.Mul, TransformOperand(operands[1]), TransformOperand(operands[2])));
+                return new Expression(ExpressionKind.Assign, TransformOperand(operands[0]), new Expression(ExpressionKind.Mul, TransformOperand(operands[1]), TransformOperand(operands[2]), instruction.InstructionIndex), instruction.InstructionIndex);
             case IsilMnemonic.Divide:
-                return new Expression(ExpressionKind.Assign, TransformOperand(operands[0]), new Expression(ExpressionKind.Div, TransformOperand(operands[0]), TransformOperand(operands[1])));
+                return new Expression(ExpressionKind.Assign, TransformOperand(operands[0]), new Expression(ExpressionKind.Div, TransformOperand(operands[1]), TransformOperand(operands[2]), instruction.InstructionIndex), instruction.InstructionIndex);
             case IsilMnemonic.ShiftLeft:
-                return new Expression(ExpressionKind.Assign, TransformOperand(operands[0]), new Expression(ExpressionKind.Shl, TransformOperand(operands[0]), TransformOperand(operands[1])));
+                return new Expression(ExpressionKind.Assign, TransformOperand(operands[0]), new Expression(ExpressionKind.Shl, TransformOperand(operands[0]), TransformOperand(operands[1]), instruction.InstructionIndex), instruction.InstructionIndex);
             case IsilMnemonic.ShiftRight:
-                return new Expression(ExpressionKind.Assign, TransformOperand(operands[0]), new Expression(ExpressionKind.Shr, TransformOperand(operands[0]), TransformOperand(operands[1])));
+                return new Expression(ExpressionKind.Assign, TransformOperand(operands[0]), new Expression(ExpressionKind.Shr, TransformOperand(operands[0]), TransformOperand(operands[1]), instruction.InstructionIndex), instruction.InstructionIndex);
             case IsilMnemonic.Return:
                 if (context.Definition?.RawReturnType?.Type == Il2CppTypeEnum.IL2CPP_TYPE_VOID)
                     return new Expression(ExpressionKind.Return);
-                return new Expression(ExpressionKind.Return, TransformOperand(operands[0]));
+                return new Expression(ExpressionKind.Return, TransformOperand(operands[0]), Index: instruction.InstructionIndex);
             case IsilMnemonic.Goto:
-                return new Expression(ExpressionKind.Goto, new InstructionReference(((InstructionSetIndependentInstruction)operands[0].Data).InstructionIndex));
+                return new Expression(ExpressionKind.Goto, new InstructionReference(((InstructionSetIndependentInstruction)operands[0].Data).InstructionIndex), Index: instruction.InstructionIndex);
 
             case IsilMnemonic.JumpIfEqual:
             case IsilMnemonic.JumpIfNotEqual:
@@ -89,25 +91,28 @@ public static class IsilLifter
             case IsilMnemonic.JumpIfLessOrEqual:
             case IsilMnemonic.JumpIfLess:
             {
-                var result = new Expression(ExpressionKind.If, previous, new Expression(ExpressionKind.Goto, TransformOperand(operands[0])))
+                var result = new Expression(ExpressionKind.If, previous, new Expression(ExpressionKind.Goto, TransformOperand(operands[0]), Index: instruction.InstructionIndex), Index: instruction.InstructionIndex)
                     .FixIf(instruction.OpCode.Mnemonic);
                 previous = null;
                 return result;
             }
             
             case IsilMnemonic.Call:
+            case IsilMnemonic.CallNoReturn:
             {
+                var args = new InlineEmitBlock(", ");
+                for (var i = 1; i < instruction.Operands.Length; i++)
+                {
+                    var op = instruction.Operands[i];
+                    args.Add(TransformOperand(op));
+                }
+                
+                IEmit function;
+                bool returns = false;
+                bool returnsFast = false;
+                
                 if (instruction.Operands[0].Data is IsilImmediateOperand imm)
                 {
-                    var args = new InlineEmitBlock(", ");
-                    for (var i = 1; i < instruction.Operands.Length; i++)
-                    {
-                        var op = instruction.Operands[i];
-                        args.Add(TransformOperand(op));
-                    }
-
-                    bool returns;
-                    IEmit function;
                     if (context.AppContext.MethodsByAddress.TryGetValue((ulong)imm.Value, out var methods))
                     {
                         var method = methods[0];
@@ -119,20 +124,27 @@ public static class IsilLifter
                         function = new UnmanagedFunctionReference(imm.Value.ToUInt64(CultureInfo.InvariantCulture));
                         returns = false; // cursed
                     }
-                    
-                    var call = new Expression(ExpressionKind.Call, function, args);
-                    if (returns)
-                        call = new Expression(ExpressionKind.Assign, GetReturnRegister(context), call);
-                    return call;
                 }
+                else if (instruction.Operands[0].Data is IsilRegisterOperand reg)
+                {
+                    function = TransformOperand(instruction.Operands[0]);
+                    returnsFast = true;
+                }
+                else throw new NotImplementedException($"Cant transform {{{instruction.Operands[0].Data}}} to function");
 
-                throw new NotImplementedException("instruction.Operands[0].Data is NOT IsilImmediateOperand");
+                var call = new Expression(ExpressionKind.Call, function, args, instruction.InstructionIndex);
+                if (returnsFast)
+                    call = new Expression(ExpressionKind.Return, call, Index: instruction.InstructionIndex);
+                else if (returns)
+                    call = new Expression(ExpressionKind.Assign, GetReturnRegister(context), call, instruction.InstructionIndex);
+                return call;
             }
+
+            case IsilMnemonic.Not:
+                return new Expression(ExpressionKind.Assign, TransformOperand(instruction.Operands[0]), new Expression(ExpressionKind.Not, TransformOperand(instruction.Operands[0]), Index: instruction.InstructionIndex), instruction.InstructionIndex);
             
             case IsilMnemonic.LoadAddress:
-            case IsilMnemonic.CallNoReturn:
             case IsilMnemonic.Exchange:
-            case IsilMnemonic.Not:
             case IsilMnemonic.ShiftStack:
             case IsilMnemonic.Push:
             case IsilMnemonic.Pop:
@@ -151,10 +163,13 @@ public static class IsilLifter
             case InstructionSetIndependentOperand.OperandType.Immediate:
             {
                 var value = ((IsilImmediateOperand)operand.Data).Value;
-                var ptr = value.ToUInt64(CultureInfo.InvariantCulture);
-                var reference = LibCpp2IlMain.GetAnyGlobalByAddress(ptr);
-                if (reference is { IsValid: true })
-                    return new MetadataReference(reference);
+                var ptr = value.ToLong();
+                if (ptr > 100_000)
+                {
+                    var reference = LibCpp2IlMain.GetAnyGlobalByAddress((ulong)ptr);
+                    if (reference is { IsValid: true })
+                        return new MetadataReference(reference);
+                }
                 return new Immediate(value);
             }
             case InstructionSetIndependentOperand.OperandType.Register:

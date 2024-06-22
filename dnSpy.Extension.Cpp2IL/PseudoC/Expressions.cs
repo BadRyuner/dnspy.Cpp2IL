@@ -6,7 +6,7 @@ using dnSpy.Contracts.Text;
 
 namespace Cpp2ILAdapter.PseudoC;
 
-public sealed record Expression(ExpressionKind Kind, IEmit? Left = null, IEmit? Right = null) : IEmit
+public sealed record Expression(ExpressionKind Kind, IEmit? Left = null, IEmit? Right = null, uint Index = 0) : IEmit
 {
     public IEmit? Left = Left;
     public ExpressionKind Kind = Kind;
@@ -14,6 +14,8 @@ public sealed record Expression(ExpressionKind Kind, IEmit? Left = null, IEmit? 
 
     public IEmit? First => Left;
     public IEmit? Second => Right;
+
+    public uint Index { get; set; } = Index;
 
     public void Write(IDecompilerOutput output, bool end = false)
     {
@@ -42,6 +44,12 @@ public sealed record Expression(ExpressionKind Kind, IEmit? Left = null, IEmit? 
                 Left?.Write(output);
                 output.Write(GetOperator(Kind), BoxedTextColor.Operator);
                 Right?.Write(output);
+                break;
+            case ExpressionKind.Not:
+                output.Write("(", BoxedTextColor.Punctuation);
+                output.Write("~", BoxedTextColor.Operator);
+                First?.Write(output);
+                output.Write(")", BoxedTextColor.Punctuation);
                 break;
             case ExpressionKind.Compare:
                 output.Write("__compare__", BoxedTextColor.ExtensionMethod);
@@ -96,7 +104,17 @@ public sealed record Expression(ExpressionKind Kind, IEmit? Left = null, IEmit? 
                 if (First is ManagedFunctionReference { Method.IsStatic: false })
                 {
                     args.StartIndex = 1;
-                    args.Items[0].Write(output);
+                    var thus = args.Items[0];
+                    if (thus is Expression { IsMathExpression: true })
+                    {
+                        output.Write("(", BoxedTextColor.Punctuation);
+                        thus.Write(output);
+                        output.Write(")", BoxedTextColor.Punctuation);
+                    }
+                    else
+                    {
+                        thus.Write(output);
+                    }
                     output.Write(".", BoxedTextColor.Punctuation);
                 }
                 First!.Write(output);
@@ -145,6 +163,26 @@ public sealed record Expression(ExpressionKind Kind, IEmit? Left = null, IEmit? 
         return this;
     }
 
+    public void NopSelf()
+    {
+        Kind = ExpressionKind.Nop;
+        Left = null;
+        Right = null;
+    }
+
+    public bool IsMathExpression => Kind switch
+    {
+        ExpressionKind.Add => true,
+        ExpressionKind.Sub => true,
+        ExpressionKind.Mul => true,
+        ExpressionKind.Div => true,
+        ExpressionKind.Rem => true,
+        ExpressionKind.Or => true,
+        ExpressionKind.Xor => true,
+        ExpressionKind.And => true,
+        _ => false
+    };
+    
     private static string GetOperator(ExpressionKind kind)
     {
         return kind switch
@@ -179,6 +217,7 @@ public enum ExpressionKind : byte
     Deref,
     Add, Sub, Mul, Div, Rem,
     Or, And, Xor,
+    Not,
     Shl, Shr,
     If,
     Call,

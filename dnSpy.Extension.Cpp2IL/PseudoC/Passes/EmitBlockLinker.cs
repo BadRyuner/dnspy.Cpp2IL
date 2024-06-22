@@ -28,7 +28,7 @@ public sealed class EmitBlockLinker : BasePass
         for (var i = 0; i < _blocks.Count; i++)
         {
             block = _blocks[i];
-            if (block.Index == reference.Index)
+            if (block.BlockIndex == reference.InstructionIndex)
                 break;
         }
 

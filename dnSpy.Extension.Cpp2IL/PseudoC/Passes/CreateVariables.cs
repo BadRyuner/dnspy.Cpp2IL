@@ -105,14 +105,28 @@ public sealed class CreateVariables : BasePass
                 }
                 else
                 {
-                    var str = "var_X" + nonVectorCount;
-                    nonVectorCount++;
-                    var pVar = AllVariables.FirstOrDefault(v => v.Name == str);
-                    if (pVar != null)
+                    if (param.ParameterType.Type is Il2CppTypeEnum.IL2CPP_TYPE_I1 or Il2CppTypeEnum.IL2CPP_TYPE_I2 or Il2CppTypeEnum.IL2CPP_TYPE_BOOLEAN)
                     {
-                        pVar.Name = param.ParameterName;
-                        pVar.Type = param.ParameterType;
+                        var str1 = "var_W" + nonVectorCount;
+                        var pVar = AllVariables.FirstOrDefault(v => v.Name == str1);
+                        if (pVar != null)
+                        {
+                            pVar.Name = param.ParameterName;
+                            pVar.Type = param.ParameterType;
+                        }
                     }
+                    else
+                    {
+                        var str = "var_X" + nonVectorCount;
+                        var pVar = AllVariables.FirstOrDefault(v => v.Name == str);
+                        if (pVar != null)
+                        {
+                            pVar.Name = param.ParameterName;
+                            pVar.Type = param.ParameterType;
+                        }
+                    }
+                    
+                    nonVectorCount++;
                 }
             }
         }

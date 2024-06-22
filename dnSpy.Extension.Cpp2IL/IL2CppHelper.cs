@@ -1,4 +1,5 @@
 ﻿using System.CodeDom;
+using System.Globalization;
 using System.Linq;
 using Cpp2IL.Core.Model.Contexts;
 using LibCpp2IL.BinaryStructures;
@@ -90,5 +91,14 @@ public static class IL2CppHelper
             return result;
 
         return GetFieldAtOffset(context, type.BaseType?.baseType, offset);
+    }
+
+    public static long ToLong(this IConvertible convertible)
+    {
+        return convertible.GetTypeCode() switch
+        {
+            TypeCode.Int32 => (int)convertible,
+            _ => convertible.ToInt64(CultureInfo.InvariantCulture)
+        };
     }
 }

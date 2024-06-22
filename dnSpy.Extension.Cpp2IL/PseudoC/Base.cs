@@ -8,6 +8,8 @@ namespace Cpp2ILAdapter.PseudoC;
 
 public interface IEmit
 {
+    public uint Index { get; set; }
+    
     void Write(IDecompilerOutput output, bool end = false);
 }
 
@@ -15,6 +17,8 @@ public abstract class Block : IEmit
 {
     public readonly List<IEmit> Items = new(2);
     public void Add(IEmit item) => Items.Add(item);
+
+    public uint Index { get; set; }
     
     public abstract void Write(IDecompilerOutput output, bool end);
     
@@ -38,11 +42,11 @@ public sealed class EmitBlock : Block
 {
     public EmitBlock(uint index)
     {
-        Index = index;
+        BlockIndex = index;
         LabelStart = $"ISIL_{index}";
     }
     
-    public readonly uint Index;
+    public readonly uint BlockIndex;
     public readonly string LabelStart;
     public bool ShouldEmitLabel => ReferencesCount > 1;
     //private bool _emitted = false;
@@ -88,6 +92,8 @@ public sealed class InlineEmitBlock : Block
 
 public sealed record Unsupported(string What) : IEmit
 {
+    public uint Index { get; set; }
+
     public void Write(IDecompilerOutput output, bool end = false)
     {
         if (end)

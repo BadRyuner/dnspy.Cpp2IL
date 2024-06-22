@@ -64,7 +64,7 @@ public class MethodNode : DsDocumentNode, IDecompileSelf
                 var white = BoxedTextColor.Local;
                 foreach (var instruction in Context.ConvertedIsil)
                 {
-                    write.Write(instruction.InstructionIndex.ToString(), BoxedTextColor.AsmLabelAddress);
+                    write.Write(instruction.InstructionIndex.ToString("000"), BoxedTextColor.AsmLabelAddress);
                     write.Write(" ", BoxedTextColor.Local);
                     write.Write(instruction.OpCode.Mnemonic.ToString(), BoxedTextColor.AsmMnemonic);
                     write.Write(" ", BoxedTextColor.Local);

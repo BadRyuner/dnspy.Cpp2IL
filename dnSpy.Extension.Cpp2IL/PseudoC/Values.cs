@@ -10,6 +10,7 @@ namespace Cpp2ILAdapter.PseudoC;
 
 public abstract record Value : IEmit
 {
+    public uint Index { get; set; }
     public abstract void Write(IDecompilerOutput output, bool end = false);
 }
 
@@ -51,11 +52,11 @@ public sealed record Immediate(IConvertible Value) : Value
     }
 }
 
-public sealed record InstructionReference(uint Index) : Value
+public sealed record InstructionReference(uint InstructionIndex) : Value
 {
     public override void Write(IDecompilerOutput output, bool end = false)
     {
-        output.Write($"ISIL_{Index}", BoxedTextColor.Label);
+        output.Write($"ISIL_{InstructionIndex}", BoxedTextColor.Label);
     }
 }
 
@@ -90,6 +91,19 @@ public sealed record UnmanagedFunctionReference(ulong Addr) : Value
         output.Write("* <...>", BoxedTextColor.Punctuation);
         output.Write(")", BoxedTextColor.Punctuation);
         output.Write($"{Addr:X2}", BoxedTextColor.Number);
+        output.Write(")", BoxedTextColor.Punctuation);
+    }
+}
+
+public sealed record VariableFunctionReference(Value Reference) : Value
+{
+    public override void Write(IDecompilerOutput output, bool end = false)
+    {
+        output.Write("((", BoxedTextColor.Punctuation);
+        output.Write("delegate", BoxedTextColor.Keyword);
+        output.Write("* <...>", BoxedTextColor.Punctuation);
+        output.Write(")", BoxedTextColor.Punctuation);
+        Reference.Write(output);
         output.Write(")", BoxedTextColor.Punctuation);
     }
 }
