@@ -92,6 +92,7 @@ sealed class Cpp2ILToolTipProvider : IDocumentViewerToolTipProvider
         {
             Il2CppType type => type.GetName(),
             Il2CppTypeDefinition typeDef => typeDef.Name,
+            TypeAnalysisContext context => context.Name,
             _ => "Unknown"
         });
         write.Write(TextColor.Punctuation, " ");

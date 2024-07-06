@@ -1,5 +1,4 @@
-﻿using System.Globalization;
-using Cpp2IL.Core.InstructionSets;
+﻿using Cpp2IL.Core.InstructionSets;
 using Cpp2IL.Core.ISIL;
 using Cpp2IL.Core.Model.Contexts;
 using Cpp2ILAdapter.IsilEcho;
@@ -8,7 +7,6 @@ using Cpp2ILAdapter.PseudoC.Passes;
 using Cpp2ILAdapter.TreeView;
 using Echo.ControlFlow.Construction.Static;
 using Echo.ControlFlow.Serialization.Blocks;
-using LibCpp2IL;
 using LibCpp2IL.BinaryStructures;
 
 namespace Cpp2ILAdapter;
@@ -46,6 +44,8 @@ public static class IsilLifter
         var dataFlowAnalysis = new DataFlowAnalysis();
         dataFlowAnalysis.Start(result, context);
         new ExpressionInliner().Start(result, context);
+        new SimpleMathSolver().Start(result, context);
+        new MetadataInliner().Start(result, context);
         
         return result;
     }
@@ -113,7 +113,8 @@ public static class IsilLifter
                 
                 if (instruction.Operands[0].Data is IsilImmediateOperand imm)
                 {
-                    if (context.AppContext.MethodsByAddress.TryGetValue((ulong)imm.Value, out var methods))
+                    var funcPtr = (ulong)imm.Value;
+                    if (context.AppContext.MethodsByAddress.TryGetValue(funcPtr, out var methods))
                     {
                         var method = methods[0];
                         function = new ManagedFunctionReference(method);
@@ -121,8 +122,8 @@ public static class IsilLifter
                     }
                     else
                     {
-                        function = new UnmanagedFunctionReference(imm.Value.ToUInt64(CultureInfo.InvariantCulture));
-                        returns = false; // cursed
+                        function = GetUnmanagedFunction(context, funcPtr);
+                        returns = function is KnownFunctionReference k && k.ReturnsValue; // cursed
                     }
                 }
                 else if (instruction.Operands[0].Data is IsilRegisterOperand reg)
@@ -163,13 +164,6 @@ public static class IsilLifter
             case InstructionSetIndependentOperand.OperandType.Immediate:
             {
                 var value = ((IsilImmediateOperand)operand.Data).Value;
-                var ptr = value.ToLong();
-                if (ptr > 100_000)
-                {
-                    var reference = LibCpp2IlMain.GetAnyGlobalByAddress((ulong)ptr);
-                    if (reference is { IsValid: true })
-                        return new MetadataReference(reference);
-                }
                 return new Immediate(value);
             }
             case InstructionSetIndependentOperand.OperandType.Register:
@@ -219,5 +213,65 @@ public static class IsilLifter
         if (set is NewArmV8InstructionSet)
             return new Register(isFloat ? "V0" : "X0");
         return new Register(isFloat ? "XMM0" : "RAX");
+    }
+
+    private static IEmit GetUnmanagedFunction(MethodAnalysisContext context, ulong funcPtr)
+    {
+        var kfa = context.AppContext.GetOrCreateKeyFunctionAddresses();
+        funcPtr = context.AppContext.Binary.GetRva(funcPtr);
+        
+        if (funcPtr == kfa.il2cpp_codegen_initialize_method ||
+            funcPtr == kfa.il2cpp_codegen_initialize_runtime_metadata ||
+            funcPtr == kfa.il2cpp_vm_metadatacache_initializemethodmetadata)
+            return KnownFunctionReference.IL2CppCodegenInitializeMethod;
+            
+        if (funcPtr == kfa.il2cpp_runtime_class_init_actual ||
+            funcPtr == kfa.il2cpp_runtime_class_init_export)
+            return KnownFunctionReference.IL2CppRuntimeClassInit;
+            
+        if (funcPtr == kfa.il2cpp_codegen_object_new ||
+            funcPtr == kfa.il2cpp_object_new ||
+            funcPtr == kfa.il2cpp_vm_object_new)
+            return KnownFunctionReference.IL2CppObjectNew;
+            
+        if (funcPtr == kfa.il2cpp_array_new_specific ||
+            funcPtr == kfa.il2cpp_vm_array_new_specific ||
+            funcPtr == kfa.SzArrayNew)
+            return KnownFunctionReference.IL2CppArrayNewSpecific;
+            
+        if (funcPtr == kfa.il2cpp_type_get_object ||
+            funcPtr == kfa.il2cpp_vm_reflection_get_type_object)
+            return KnownFunctionReference.IL2CppTypeGetObject;
+            
+        if (funcPtr == kfa.il2cpp_runtime_class_init_actual ||
+            funcPtr == kfa.il2cpp_resolve_icall)
+            return KnownFunctionReference.IL2CppResolveIcall;
+            
+        if (funcPtr == kfa.il2cpp_codegen_string_new_wrapper ||
+            funcPtr == kfa.il2cpp_string_new ||
+            funcPtr == kfa.il2cpp_string_new_wrapper ||
+            funcPtr == kfa.il2cpp_vm_string_new ||
+            funcPtr == kfa.il2cpp_vm_string_newWrapper)
+            return KnownFunctionReference.IL2CppStringNew;
+            
+        if (funcPtr == kfa.il2cpp_value_box ||
+            funcPtr == kfa.il2cpp_vm_object_box)
+            return KnownFunctionReference.IL2CppValueBox;
+            
+        if (funcPtr == kfa.il2cpp_object_unbox ||
+            funcPtr == kfa.il2cpp_vm_object_unbox)
+            return KnownFunctionReference.IL2CppObjectUnbox;
+            
+        if (funcPtr == kfa.il2cpp_codegen_raise_exception ||
+            funcPtr == kfa.il2cpp_raise_exception ||
+            funcPtr == kfa.il2cpp_vm_exception_raise)
+            return KnownFunctionReference.IL2CppRaiseException;
+            
+        if (funcPtr == kfa.il2cpp_vm_object_is_inst)
+            return KnownFunctionReference.IL2CppVmObjectIsInst;
+            
+        if (funcPtr == kfa.il2cpp_vm_object_is_inst)
+            return KnownFunctionReference.AddrPInvokeLookup;
+        return new UnmanagedFunctionReference(funcPtr);
     }
 }

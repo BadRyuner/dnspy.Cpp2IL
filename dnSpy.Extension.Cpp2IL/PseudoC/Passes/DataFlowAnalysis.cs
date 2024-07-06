@@ -1,4 +1,5 @@
 ﻿using System.Globalization;
+using System.Runtime.CompilerServices;
 using Cpp2IL.Core.Model.Contexts;
 using LibCpp2IL.BinaryStructures;
 
@@ -71,6 +72,20 @@ public class DataFlowAnalysis : BasePass
             {
                 retValue.Type = retType;
                 _success = true;
+            }
+        }
+
+        if (expression is { Kind: ExpressionKind.Call, Left: ManagedFunctionReference { } method2, Right: not null })
+        {
+            var args = Unsafe.As<IEmit, InlineEmitBlock>(ref expression.Right).Items;
+            var p = method2.Method.Parameters;
+            for (var i = 0; i < p.Count; i++)
+            {
+                if (args[i] is Variable { Type: null } var)
+                {
+                    var.Type = p[i].ParameterTypeContext;
+                    _success = true;
+                }
             }
         }
     }

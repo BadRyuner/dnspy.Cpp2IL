@@ -31,8 +31,9 @@ public abstract class Block : IEmit
             var item = items[i];
             if (item is Expression expr)
             {
-                expr.AcceptPass(pass);
                 pass.AcceptExpression(ref Unsafe.As<IEmit, Expression>(ref items[i]));
+                if (items[i] is Expression expr1) // if not changed
+                    expr1.AcceptPass(pass);
             }
         }
     }

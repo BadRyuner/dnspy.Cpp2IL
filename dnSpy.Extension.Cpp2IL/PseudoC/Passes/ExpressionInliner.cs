@@ -12,7 +12,7 @@ public sealed class ExpressionInliner : BasePass
 
         foreach (var (variable, info) in _infos)
         {
-            if (info.OnceInitOnceRead)
+            if (info.OnceInitOnceRead /* || (info.IsOnceInitialized && info.Write[0].Right is Immediate) */)
             {
                 var data = info.Write[0].Right!;
                 if (info.UsedInBlocks.Count == 1)
