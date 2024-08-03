@@ -1,4 +1,5 @@
 ﻿using System.Linq;
+using System.Reflection;
 using Cpp2IL.Core.Model.Contexts;
 using Cpp2ILAdapter.References;
 using dnSpy.Contracts.Decompiler;
@@ -33,15 +34,78 @@ public class TypeNode : DsDocumentNode, IDecompileSelf, IReflect
         }
     }
     
+    public bool IsAbstract => (Context.TypeAttributes & TypeAttributes.Abstract) != 0;
+    public bool IsSealed => (Context.TypeAttributes & TypeAttributes.Sealed) != 0;
+    public bool IsInternal => IsAbstract && IsSealed;
+
+    public bool IsPrivate => (Context.TypeAttributes & TypeAttributes.NestedPrivate) != 0 ;
+
+    public bool IsPublic => (Context.TypeAttributes & TypeAttributes.Public) != 0
+                            || (Context.TypeAttributes & TypeAttributes.NestedPublic) != 0 ;
+
+    public bool IsStatic => (Context.TypeAttributes & TypeAttributes.Abstract) != 0 
+                            && (Context.TypeAttributes & TypeAttributes.Sealed) != 0;
+    
     private TreeNodeData[]? _treeNodeData;
     
     public override Guid Guid => MyGuid;
-    protected override ImageReference GetIcon(IDotNetImageService dnImgMgr) 
-        => Context.IsValueType 
-            ? DsImages.StructurePublic
-            : Context.IsInterface 
-            ? DsImages.InterfacePublic
-            : DsImages.ClassPublic;
+
+    protected override ImageReference GetIcon(IDotNetImageService dnImgMgr)
+    {
+        if (Context.IsEnumType)
+        {
+            if (IsPublic)
+                return DsImages.EnumerationPublic;
+
+            if (IsPrivate)
+                return DsImages.EnumerationPrivate;
+
+            if (IsInternal)
+                return DsImages.EnumerationInternal;
+
+            return DsImages.EnumerationShortcut;
+        }
+        
+        if (Context.IsValueType)
+        {
+            if (IsPublic)
+                return DsImages.StructurePublic;
+
+            if (IsPrivate)
+                return DsImages.StructurePrivate;
+
+            if (IsInternal)
+                return DsImages.StructureInternal;
+
+            return DsImages.StructureShortcut;
+        }
+
+        if (Context.IsInterface)
+        {
+            if (IsPublic)
+                return DsImages.InterfacePublic;
+
+            if (IsPrivate)
+                return DsImages.InterfacePrivate;
+
+            if (IsInternal)
+                return DsImages.InterfaceInternal;
+
+            return DsImages.InterfaceShortcut;
+        }
+
+
+        if (IsPublic)
+            return DsImages.ClassPublic;
+
+        if (IsPrivate)
+            return DsImages.ClassPrivate;
+
+        if (IsInternal)
+            return DsImages.ClassInternal;
+
+        return DsImages.ClassShortcut;
+    }
 
     protected override void WriteCore(ITextColorWriter output, IDecompiler decompiler, DocumentNodeWriteOptions options)
     {
@@ -67,6 +131,34 @@ public class TypeNode : DsDocumentNode, IDecompileSelf, IReflect
     public bool Decompile(IDecompileNodeContext context)
     {
         var write = context.Output;
+
+        if (Context.CustomAttributes == null)
+            Context.AnalyzeCustomAttributeData();
+        IL2CppHelper.DispayAttributes(Context.CustomAttributes, write);
+        
+        if (Context.IsEnumType) // display as enum
+        {
+            write.Write("enum ", BoxedTextColor.Keyword);
+            write.Write(Context.Name, BoxedTextColor.Type);
+            write.Write(" : ", BoxedTextColor.Punctuation);
+            write.WriteLine(Context.Fields[0]?.FieldType?.GetName() ?? string.Empty, BoxedTextColor.Type);
+            write.WriteLine("{", BoxedTextColor.Punctuation);
+            write.IncreaseIndent();
+            for (var i = 1; i < Context.Fields.Count; i++)
+            {
+                var field = Context.Fields[i];
+                write.Write(field.Name, BoxedTextColor.Local);
+                if (field.BackingData?.DefaultValue != null)
+                {
+                    write.Write(" = ", BoxedTextColor.Punctuation);
+                    write.Write(field.BackingData.DefaultValue.ToString() ?? string.Empty, BoxedTextColor.Number);
+                }
+                write.WriteLine(",", BoxedTextColor.Punctuation);
+            }
+            write.DecreaseIndent();
+            write.WriteLine("}", BoxedTextColor.Punctuation);
+            return true;
+        }
 
         if (context.Decompiler.GenericNameUI == "IL")
         {

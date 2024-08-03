@@ -130,7 +130,51 @@ public sealed class CreateVariables : BasePass
                 }
             }
         }
+        else
+        {
+            if (!context.IsStatic)
+            {
+                var thisVar = AllVariables.FirstOrDefault(static v => v.Name == "var_rcx");
+                if (thisVar != null)
+                {
+                    thisVar.Name = "this";
+                    thisVar.Type = context.Definition?.DeclaringType;
+                    thisVar.IsKeyword = true;
+                }
+            }
+            
+            for (var i = context.IsStatic ? 0 : 1; i < context.Parameters.Count; i++)
+            {
+                if (i > 3) 
+                    break; // todo: handle stack param
+                
+                var param = context.Parameters[i];
+                if (param.ParameterType.Type is Il2CppTypeEnum.IL2CPP_TYPE_R4 or Il2CppTypeEnum.IL2CPP_TYPE_R8)
+                {
+                    var str = X64FloatArgs[i];
+                    var pVar = AllVariables.FirstOrDefault(v => v.Name == str);
+                    if (pVar != null)
+                    {
+                        pVar.Name = param.ParameterName;
+                        pVar.Type = param.ParameterType;
+                    }
+                }
+                else
+                {
+                    var str = X64IntArgs[i];
+                    var pVar = AllVariables.FirstOrDefault(v => v.Name == str);
+                    if (pVar != null)
+                    {
+                        pVar.Name = param.ParameterName;
+                        pVar.Type = param.ParameterType;
+                    }
+                }
+            }
+        }
     }
+    
+    private static readonly string[] X64IntArgs = new[] { "var_rcx", "var_rdx", "var_r8", "var_r9" };
+    private static readonly string[] X64FloatArgs = new[] { "var_xmm0", "var_xmm1", "var_xmm2", "var_xmm3" };
     
     private void ShadowVariable(Variable variable) => _registerToVariable[variable.Name] = variable;
 

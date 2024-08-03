@@ -150,6 +150,9 @@ public sealed record Expression(ExpressionKind Kind, IEmit? Left = null, IEmit? 
 
     public Expression FixIf(IsilMnemonic ifType)
     {
+        if (First is not Expression)
+            return this;
+        
         ((Expression)First!).Kind = ifType switch
         {
             IsilMnemonic.JumpIfEqual => ExpressionKind.CompareEq,

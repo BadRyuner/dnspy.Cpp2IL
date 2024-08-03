@@ -155,15 +155,23 @@ public sealed record MetadataReference(MetadataUsage Metadata) : Value
 {
     public override void Write(IDecompilerOutput output, bool end = false)
     {
-        if (Metadata.Type == MetadataUsageType.Type)
+        if (Metadata.Type is MetadataUsageType.Type or MetadataUsageType.TypeInfo)
         {
-            output.Write("__type__", BoxedTextColor.Keyword);
+            output.Write("typeof", BoxedTextColor.Keyword);
             output.Write("(", BoxedTextColor.Punctuation);
             var ty = (Il2CppTypeReflectionData)Metadata.Value;
             if (ty.baseType != null)
                 output.Write(ty.ToString(), new Cpp2ILTypeDefReference(ty.baseType), DecompilerReferenceFlags.None, BoxedTextColor.Type);
             else 
                 output.Write(ty.ToString(), BoxedTextColor.Type);
+            output.Write(")", BoxedTextColor.Punctuation);
+        }
+        else if (Metadata.Type == MetadataUsageType.MethodRef)
+        {
+            output.Write("__methodref__", BoxedTextColor.Keyword);
+            output.Write("(", BoxedTextColor.Punctuation);
+            var ty = (Cpp2IlMethodRef)Metadata.Value;
+            output.Write(ty.ToString(), new Cpp2ILMethodReferenceFromRef(ty), DecompilerReferenceFlags.None, BoxedTextColor.Type);
             output.Write(")", BoxedTextColor.Punctuation);
         }
         else if (Metadata.Type == MetadataUsageType.StringLiteral)

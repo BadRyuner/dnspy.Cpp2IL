@@ -1,4 +1,5 @@
 ﻿using System.Linq;
+using Cpp2IL.Core.Model.Contexts;
 using Cpp2ILAdapter.TreeView;
 using dnSpy.Contracts.Documents.TreeView;
 using LibCpp2IL.BinaryStructures;
@@ -49,6 +50,17 @@ sealed class Cpp2ILTreeNodeDataFinder : IDocumentTreeNodeDataFinder
                     return null;
                 return typeNode.TreeNode.DataChildren
                     .FirstOrDefault(c => c is MethodNode node && node.Context.UnderlyingPointer == method.UnderlyingPointer) as MethodNode;
+            }
+            case Cpp2ILMethodReferenceFromRef methodReference2:
+            {
+                var method = methodReference2.Method;
+                var decType = method.DeclaringType;
+                var ty = documentNode.IlDocument.Context.AllTypes.First(_ => _.TypeNamespace == decType.Namespace && _.Name == decType.Name);
+                var typeNode = documentNode.SearchType(ty);
+                if (typeNode == null)
+                    return null;
+                return typeNode.TreeNode.DataChildren
+                    .FirstOrDefault(c => c is MethodNode node && node.Context.UnderlyingPointer == method.BaseMethod.MethodPointer) as MethodNode;
             }
             case Cpp2ILFieldReference fieldReference:
             {

@@ -48,6 +48,11 @@ public class MethodNode : DsDocumentNode, IDecompileSelf
     private void RenderIsil(IDecompileNodeContext context)
     {
         var write = context.Output;
+        
+        if (Context.CustomAttributes == null)
+            Context.AnalyzeCustomAttributeData();
+        IL2CppHelper.DispayAttributes(Context.CustomAttributes, write);
+        
         RenderHeader(context, Context.Definition!, true);
         write.IncreaseIndent();
         

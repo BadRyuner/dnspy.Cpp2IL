@@ -34,6 +34,11 @@ public class FieldNode : DsDocumentNode, IDecompileSelf
     public bool Decompile(IDecompileNodeContext context)
     {
         var write = context.Output;
+        
+        if (Context.CustomAttributes == null)
+            Context.AnalyzeCustomAttributeData();
+        IL2CppHelper.DispayAttributes(Context.CustomAttributes, write);
+        
         if (context.Decompiler.GenericNameUI == "IL")
         {
             write.Write("field. offset(", BoxedTextColor.Blue);

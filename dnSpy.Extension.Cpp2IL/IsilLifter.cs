@@ -40,12 +40,13 @@ public static class IsilLifter
         }
         
         //new EmitBlockLinker().Start(result, context);
+        new RenameRegisters(context.AppContext.InstructionSet is X86InstructionSet).Start(result, context);
         new CreateVariables().Start(result, context);
         var dataFlowAnalysis = new DataFlowAnalysis();
         dataFlowAnalysis.Start(result, context);
-        new ExpressionInliner().Start(result, context);
-        new SimpleMathSolver().Start(result, context);
         new MetadataInliner().Start(result, context);
+        new StringAnalysis().Start(result, context);
+        new ExpressionInliner().Start(result, context);
         
         return result;
     }
@@ -143,8 +144,15 @@ public static class IsilLifter
 
             case IsilMnemonic.Not:
                 return new Expression(ExpressionKind.Assign, TransformOperand(instruction.Operands[0]), new Expression(ExpressionKind.Not, TransformOperand(instruction.Operands[0]), Index: instruction.InstructionIndex), instruction.InstructionIndex);
-            
+
             case IsilMnemonic.LoadAddress:
+            {
+                var expr = TransformOperand(instruction.Operands[1]);
+                if (expr is Expression { Kind: ExpressionKind.Deref, Left: var e })
+                    expr = e;
+                return new Expression(ExpressionKind.Assign, TransformOperand(instruction.Operands[0]), expr);
+            }
+                
             case IsilMnemonic.Exchange:
             case IsilMnemonic.ShiftStack:
             case IsilMnemonic.Push:
@@ -198,6 +206,7 @@ public static class IsilLifter
                 return new Expression(ExpressionKind.Deref, what);
             }
             case InstructionSetIndependentOperand.OperandType.StackOffset:
+                return new Register("Stack:" + ((IsilStackOperand)operand.Data).Offset);
             default:
                 return new Unsupported(operand.ToString() ?? string.Empty);
         }
@@ -212,7 +221,7 @@ public static class IsilLifter
 
         if (set is NewArmV8InstructionSet)
             return new Register(isFloat ? "V0" : "X0");
-        return new Register(isFloat ? "XMM0" : "RAX");
+        return new Register(isFloat ? "xmm0" : "rax");
     }
 
     private static IEmit GetUnmanagedFunction(MethodAnalysisContext context, ulong funcPtr)

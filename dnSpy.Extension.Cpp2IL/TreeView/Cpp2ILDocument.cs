@@ -69,9 +69,10 @@ internal sealed class Cpp2ILDocumentProvider : IDsDocumentProvider
             return true;
 
         if (documentInfo.Type == DocumentConstants.DOCUMENTTYPE_FILE &&
-            (documentInfo.Name.EndsWith("GameAssembly.dll", StringComparison.OrdinalIgnoreCase)
-            || documentInfo.Name.EndsWith(".apk", StringComparison.OrdinalIgnoreCase)
-            || documentInfo.Name.EndsWith(".xapk", StringComparison.OrdinalIgnoreCase)))
+            (documentInfo.Name.EndsWith("GameAssembly.dll", StringComparison.OrdinalIgnoreCase) 
+             || documentInfo.Name.EndsWith("GameAssembly.so", StringComparison.OrdinalIgnoreCase)
+             || documentInfo.Name.EndsWith(".apk", StringComparison.OrdinalIgnoreCase)
+             || documentInfo.Name.EndsWith(".xapk", StringComparison.OrdinalIgnoreCase)))
             return true;
         
         return false;
