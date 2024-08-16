@@ -28,6 +28,10 @@ sealed class Cpp2ILTreeNodeDataFinder : IDocumentTreeNodeDataFinder
         
         switch (@ref)
         {
+            case Cpp2ILDirectReference directReference:
+            {
+                return directReference.Node;
+            }
             case Cpp2ILTypeDefReference typeDefReference:
             {
                 if (typeDefReference.Type == null)

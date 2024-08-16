@@ -21,6 +21,8 @@ public class FieldNode : DsDocumentNode, IDecompileSelf
     }
 
     public new readonly FieldAnalysisContext Context;
+
+    public string DisplayName => $"{Context.DeclaringType.FullName}::{Context.FieldName}";
     
     public override Guid Guid => MyGuid;
     protected override ImageReference GetIcon(IDotNetImageService dnImgMgr) 

@@ -1,0 +1,63 @@
+﻿<UserControl x:Class="Cpp2ILAdapter.Search.SearchControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:local="clr-namespace:Cpp2ILAdapter.Search"
+             xmlns:mvvm="clr-namespace:dnSpy.Contracts.MVVM;assembly=dnSpy.Contracts.DnSpy"
+             xmlns:images="clr-namespace:dnSpy.Contracts.Images;assembly=dnSpy.Contracts.DnSpy">
+    <UserControl.Resources>
+        <DataTemplate DataType="{x:Type local:SearchTypeVM}">
+            <Grid ToolTip="{Binding ToolTip}" Background="Transparent">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <images:DsImage Grid.Column="0" Margin="0 0 4 0" ImageReference="{Binding Image}" />
+                <TextBlock Grid.Column="1" Text="{Binding Name}" HorizontalAlignment="Stretch" />
+            </Grid>
+        </DataTemplate>
+    </UserControl.Resources>
+    <Grid>
+         <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+        <Grid Grid.Row="0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+            <TextBox Grid.Row="0" Grid.Column="0" Name="searchTextBox" VerticalAlignment="Stretch" Margin="0 0 5 0" Text="{Binding SearchText, ValidatesOnDataErrors=True, ValidatesOnExceptions=True, UpdateSourceTrigger=PropertyChanged}" />
+            <Expander Grid.Row="0" Grid.Column="1" Name="Expander" VerticalContentAlignment="Center" IsExpanded="False" Header="Options" />
+            <Label Grid.Row="0" Grid.Column="2" VerticalContentAlignment="Center" Content="Search For"/>
+            <ComboBox Grid.Row="0" Grid.Column="3" Width="130" Margin="1 1 0 1" ItemsSource="{Binding SearchTypeVMs}" SelectedItem="{Binding SelectedSearchTypeVM}" HorizontalAlignment="Stretch" VerticalContentAlignment="Center" images:DsImage.BackgroundBrush="{Binding Background, RelativeSource={RelativeSource Self}}" />
+            <WrapPanel Grid.Row="1" Grid.ColumnSpan="5" Margin="2 0 2 2" Orientation="Horizontal" Visibility="{Binding IsExpanded, ElementName=Expander, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <CheckBox Margin="0 5 5 0" Content="Match Whole Words" IsChecked="{Binding SearchSettings.MatchWholeWords}" />
+                <CheckBox Margin="0 5 5 0" Content="Case Sensitive Search" IsChecked="{Binding SearchSettings.CaseSensitive}" />
+                <CheckBox Margin="0 5 5 0" Content="Match Any" IsChecked="{Binding SearchSettings.MatchAnySearchTerm}" />
+                <CheckBox Margin="0 5 5 0" Content="Search Compiler Generated Members" IsChecked="{Binding SearchSettings.SearchCompilerGeneratedMembers}" />
+            </WrapPanel>
+        </Grid>
+        <ListBox Grid.Row="1"
+                 Name="searchListBox"
+                 SelectionMode="Single"
+                 VirtualizingStackPanel.IsVirtualizing="True"
+                 VirtualizingStackPanel.VirtualizationMode="Standard"
+                 mvvm:AutomationPeerMemoryLeakWorkaround.Initialize="True"
+                 BorderBrush="{DynamicResource CommonControlsTextBoxBorderError}"
+                 images:DsImage.BackgroundBrush="{Binding Background, RelativeSource={RelativeSource Self}}"
+                 HorizontalContentAlignment="Stretch"
+                 MouseDoubleClick="searchListBox_MouseDoubleClick"
+                 ItemsSource="{Binding SearchResultsCollectionView}"
+                 SelectedItem="{Binding SelectedSearchResult}"
+                 DisplayMemberPath="DisplayName"/>
+    </Grid>
+</UserControl>

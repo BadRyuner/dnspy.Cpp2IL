@@ -19,7 +19,6 @@ public class TypeNode : DsDocumentNode, IDecompileSelf, IReflect
     public TypeNode(TypeAnalysisContext context, IDsDocument document) : base(document)
     {
         Context = context;
-        
     }
 
     public new readonly TypeAnalysisContext Context;
@@ -33,6 +32,8 @@ public class TypeNode : DsDocumentNode, IDecompileSelf, IReflect
             return _treeNodeData;
         }
     }
+
+    public string DisplayName => Context.FullName;
     
     public bool IsAbstract => (Context.TypeAttributes & TypeAttributes.Abstract) != 0;
     public bool IsSealed => (Context.TypeAttributes & TypeAttributes.Sealed) != 0;

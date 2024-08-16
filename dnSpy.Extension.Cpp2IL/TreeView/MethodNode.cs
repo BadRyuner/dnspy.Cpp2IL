@@ -26,6 +26,8 @@ public class MethodNode : DsDocumentNode, IDecompileSelf
     public new readonly MethodAnalysisContext Context;
     public new readonly Cpp2ILDocument Document;
     
+    public string DisplayName => $"{Context.DeclaringType?.FullName}::{Context.MethodName}";
+    
     public override Guid Guid => MyGuid;
     protected override ImageReference GetIcon(IDotNetImageService dnImgMgr) 
         => Context.Attributes.HasFlag(MethodAttributes.Public) ? DsImages.MethodPublic : DsImages.MethodPrivate;

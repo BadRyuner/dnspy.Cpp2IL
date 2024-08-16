@@ -1,0 +1,28 @@
+﻿namespace Cpp2ILAdapter.Search;
+
+enum SearchType {
+    AssemblyDef,
+    ModuleDef,
+    Namespace,
+    TypeDef,
+    FieldDef,
+    MethodDef,
+    PropertyDef,
+    EventDef,
+    ParamDef,
+    Local,
+    ParamLocal,
+    AssemblyRef,
+    ModuleRef,
+    Resource,
+    GenericTypeDef,
+    NonGenericTypeDef,
+    EnumTypeDef,
+    InterfaceTypeDef,
+    ClassTypeDef,
+    StructTypeDef,
+    DelegateTypeDef,
+    Member,
+    Any,
+    Literal,
+}

@@ -87,6 +87,14 @@ public sealed class Cpp2ILDocumentNode : DsDocumentNode, IDecompileSelf, IReflec
     {
         IlDocument = document;
         Children = IlDocument.Context.Assemblies.Select(assembly => new AssemblyNode(assembly, Document)).ToArray();
+        AllTypes = Children.SelectMany(n => n.Children).SelectMany(n => n.Children).ToHashSet();
+        for (var i = 0; i < AllTypes.Count; i++)
+        {
+            var ty = AllTypes.ElementAt(i);
+            var nested = ty.GetTreeNodeData.OfType<TypeNode>();
+            foreach (var treeNodeData in nested)
+                AllTypes.Add(treeNodeData);
+        }
     }
 
     public readonly Cpp2ILDocument IlDocument;
@@ -100,6 +108,7 @@ public sealed class Cpp2ILDocumentNode : DsDocumentNode, IDecompileSelf, IReflec
     }
 
     public readonly AssemblyNode[] Children;
+    public readonly HashSet<TypeNode> AllTypes;
 
     public override IEnumerable<TreeNodeData> CreateChildren() => Children;
 
