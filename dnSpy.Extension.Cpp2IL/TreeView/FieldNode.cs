@@ -20,7 +20,7 @@ public class FieldNode : DsDocumentNode, IDecompileSelf
         Context = context;
     }
 
-    public readonly FieldAnalysisContext Context;
+    public new readonly FieldAnalysisContext Context;
     
     public override Guid Guid => MyGuid;
     protected override ImageReference GetIcon(IDotNetImageService dnImgMgr) 

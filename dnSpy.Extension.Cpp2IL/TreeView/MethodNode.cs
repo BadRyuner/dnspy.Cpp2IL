@@ -24,7 +24,7 @@ public class MethodNode : DsDocumentNode, IDecompileSelf
     }
 
     public new readonly MethodAnalysisContext Context;
-    public readonly Cpp2ILDocument Document;
+    public new readonly Cpp2ILDocument Document;
     
     public override Guid Guid => MyGuid;
     protected override ImageReference GetIcon(IDotNetImageService dnImgMgr) 

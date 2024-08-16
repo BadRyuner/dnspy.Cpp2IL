@@ -20,7 +20,7 @@ public class AssemblyNode : DsDocumentNode, IReflect
         Children = grouped.Select(ns => new NamespaceNode(ns.ToArray(), Document)).ToArray();
     }
 
-    public readonly AssemblyAnalysisContext Context;
+    public new readonly AssemblyAnalysisContext Context;
 
     public override Guid Guid => MyGuid;
     protected override ImageReference GetIcon(IDotNetImageService dnImgMgr) => DsImages.Assembly;

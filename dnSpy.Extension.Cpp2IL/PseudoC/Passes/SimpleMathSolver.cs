@@ -6,7 +6,7 @@ namespace Cpp2ILAdapter.PseudoC.Passes;
 
 public class SimpleMathSolver : BasePass
 {
-    private Il2CppBinary _binary;
+    private Il2CppBinary _binary = null!;
     
     public override void Start(List<EmitBlock> blocks, MethodAnalysisContext context)
     {
