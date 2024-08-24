@@ -164,7 +164,7 @@ public class TypeNode : DsDocumentNode, IDecompileSelf, IReflect
         if (context.Decompiler.GenericNameUI == "IL")
         {
             write.Write(".type ", BoxedTextColor.Keyword);
-            write.Write(Context.Name, BoxedTextColor.Type);
+            write.Write(Context.Name, this, DecompilerReferenceFlags.None, BoxedTextColor.Type);
             if (Context.BaseType != null)
             {
                 write.Write(" : ", BoxedTextColor.Local);
@@ -175,7 +175,7 @@ public class TypeNode : DsDocumentNode, IDecompileSelf, IReflect
         else
         {
             write.Write(Context.IsValueType ? "struct " : "class ", BoxedTextColor.Keyword);
-            write.Write(Context.Name, BoxedTextColor.Type);
+            write.Write(Context.Name, this, DecompilerReferenceFlags.None, BoxedTextColor.Type);
             if (Context.BaseType != null)
             {
                 write.Write(" : ", BoxedTextColor.Local);

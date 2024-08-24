@@ -15,40 +15,62 @@ public static class IsilLifter
 {
     public static List<EmitBlock> Lift(MethodAnalysisContext context, Cpp2ILDocument document)
     {
-        var arch = new IsilArchitecture(document);
-        var transitioner = new IsilStaticSuccessorResolver(context.ConvertedIsil!);
-        var builder = new StaticFlowGraphBuilder<InstructionSetIndependentInstruction>(arch, context.ConvertedIsil, transitioner);
-        var cfg = builder.ConstructFlowGraph(1, Array.Empty<long>());
-
-        var blocks = cfg.ConstructBlocks().GetAllBlocks();
-        var result = new List<EmitBlock>();
-        IEmit? previous = new Expression(ExpressionKind.Nop);
-        foreach (var basicBlock in blocks)
+        try
         {
-            var emitBlock = new EmitBlock(basicBlock.Header.InstructionIndex);
-            for (var i = 0; i < basicBlock.Instructions.Count; i++)
+            if (context.ConvertedIsil == null)
+                context.Analyze();
+
+            var arch = new IsilArchitecture(document);
+            var transitioner = new IsilStaticSuccessorResolver(context.ConvertedIsil!);
+            var builder =
+                new StaticFlowGraphBuilder<InstructionSetIndependentInstruction>(arch, context.ConvertedIsil,
+                    transitioner);
+            var cfg = builder.ConstructFlowGraph(1, Array.Empty<long>());
+
+            var blocks = cfg.ConstructBlocks().GetAllBlocks();
+            var result = new List<EmitBlock>();
+            IEmit? previous = new Expression(ExpressionKind.Nop);
+            foreach (var basicBlock in blocks)
             {
-                var instruction = basicBlock.Instructions[i];
-                var transformed = Transform(ref previous, instruction, context);
-                if (previous != null)
-                    emitBlock.Add(transformed);
-                else
-                    emitBlock.Items[^1] = transformed;
-                previous = transformed;
+                var emitBlock = new EmitBlock(basicBlock.Header.InstructionIndex);
+                for (var i = 0; i < basicBlock.Instructions.Count; i++)
+                {
+                    var instruction = basicBlock.Instructions[i];
+                    var transformed = Transform(ref previous, instruction, context);
+                    if (previous != null)
+                        emitBlock.Add(transformed);
+                    else
+                        emitBlock.Items[^1] = transformed;
+                    previous = transformed;
+                }
+
+                result.Add(emitBlock);
             }
-            result.Add(emitBlock);
+
+            //new EmitBlockLinker().Start(result, context);
+            new RenameRegisters(context.AppContext.InstructionSet is X86InstructionSet).Start(result, context);
+            new CreateVariables().Start(result, context);
+            var dataFlowAnalysis = new DataFlowAnalysis();
+            dataFlowAnalysis.Start(result, context);
+            new MetadataInliner().Start(result, context);
+            new StringAnalysis().Start(result, context);
+            new ExpressionInliner().Start(result, context);
+
+            return result;
         }
-        
-        //new EmitBlockLinker().Start(result, context);
-        new RenameRegisters(context.AppContext.InstructionSet is X86InstructionSet).Start(result, context);
-        new CreateVariables().Start(result, context);
-        var dataFlowAnalysis = new DataFlowAnalysis();
-        dataFlowAnalysis.Start(result, context);
-        new MetadataInliner().Start(result, context);
-        new StringAnalysis().Start(result, context);
-        new ExpressionInliner().Start(result, context);
-        
-        return result;
+        catch(Exception e)
+        {
+            return new List<EmitBlock>()
+            {
+                new EmitBlock(0)
+                {
+                    Items =
+                    {
+                        new Unsupported(e.ToString())
+                    }
+                }
+            };
+        }
     }
 
     private static IEmit Transform(ref IEmit? previous, in InstructionSetIndependentInstruction instruction, MethodAnalysisContext context)

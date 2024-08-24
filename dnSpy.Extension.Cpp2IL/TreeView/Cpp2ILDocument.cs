@@ -1,7 +1,9 @@
-﻿using System.ComponentModel.Composition;
+﻿using System.Collections.Frozen;
+using System.ComponentModel.Composition;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Windows;
 using Cpp2IL.Core;
 using Cpp2IL.Core.Model.Contexts;
 using dnSpy.Contracts.Decompiler;
@@ -82,19 +84,25 @@ internal sealed class Cpp2ILDocumentProvider : IDsDocumentProvider
 public sealed class Cpp2ILDocumentNode : DsDocumentNode, IDecompileSelf, IReflect
 {
     public static readonly Guid MyGuid = new("9aef0611-8979-428c-ae5c-5daba1af5cbe");
+
+    public static Cpp2ILDocumentNode? CurrentInstance;
     
     public Cpp2ILDocumentNode(Cpp2ILDocument document) : base(document)
     {
         IlDocument = document;
         Children = IlDocument.Context.Assemblies.Select(assembly => new AssemblyNode(assembly, Document)).ToArray();
-        AllTypes = Children.SelectMany(n => n.Children).SelectMany(n => n.Children).ToHashSet();
-        for (var i = 0; i < AllTypes.Count; i++)
+        var allTypes = Children.SelectMany(n => n.Children).SelectMany(n => n.Children).ToHashSet();
+        for (var i = 0; i < allTypes.Count; i++)
         {
-            var ty = AllTypes.ElementAt(i);
+            var ty = allTypes.ElementAt(i);
             var nested = ty.GetTreeNodeData.OfType<TypeNode>();
             foreach (var treeNodeData in nested)
-                AllTypes.Add(treeNodeData);
+                allTypes.Add(treeNodeData);
         }
+
+        AllTypes = allTypes.ToFrozenSet();
+        
+        CurrentInstance = this;
     }
 
     public readonly Cpp2ILDocument IlDocument;
@@ -108,8 +116,18 @@ public sealed class Cpp2ILDocumentNode : DsDocumentNode, IDecompileSelf, IReflec
     }
 
     public readonly AssemblyNode[] Children;
-    public readonly HashSet<TypeNode> AllTypes;
+    public readonly FrozenSet<TypeNode> AllTypes;
+    public bool IsAssemblyAnalyzed = false;
 
+    public void CheckIsAnalyzed()
+    {
+        if (!IsAssemblyAnalyzed)
+        {
+            MessageBox.Show("The assembly will now be analyzed in its entirety. The application will freeze for a few minutes.");
+            IsAssemblyAnalyzed = true;
+        }
+    }
+    
     public override IEnumerable<TreeNodeData> CreateChildren() => Children;
 
     public bool Decompile(IDecompileNodeContext context)

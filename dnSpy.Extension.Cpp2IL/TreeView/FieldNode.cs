@@ -62,7 +62,8 @@ public class FieldNode : DsDocumentNode, IDecompileSelf
         }
         write.Write(Context.FieldType!.GetName(), new Cpp2ILTypeReference(Context.FieldType!), DecompilerReferenceFlags.None, BoxedTextColor.Type);
         write.Write(" ", BoxedTextColor.Local);
-        write.WriteLine(Context.FieldName, BoxedTextColor.Local);
+        write.Write(Context.FieldName, this, DecompilerReferenceFlags.None, BoxedTextColor.InstanceField);
+        write.WriteLine(";", BoxedTextColor.Local);
         return true;
     }
 }

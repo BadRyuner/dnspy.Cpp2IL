@@ -1,6 +1,8 @@
-﻿using System.Reflection;
+﻿using System.Collections.Frozen;
+using System.Reflection;
 using Cpp2IL.Core.ISIL;
 using Cpp2IL.Core.Model.Contexts;
+using Cpp2ILAdapter.PseudoC;
 using Cpp2ILAdapter.References;
 using dnSpy.Contracts.Decompiler;
 using dnSpy.Contracts.Documents;
@@ -21,17 +23,19 @@ public class MethodNode : DsDocumentNode, IDecompileSelf
     {
         Context = context;
         Document = (Cpp2ILDocument)document;
+        Lifted = new(() => IsilLifter.Lift(Context, Document).ToFrozenSet());
     }
 
     public new readonly MethodAnalysisContext Context;
     public new readonly Cpp2ILDocument Document;
+    public readonly Lazy<FrozenSet<EmitBlock>> Lifted;
     
     public string DisplayName => $"{Context.DeclaringType?.FullName}::{Context.MethodName}";
     
     public override Guid Guid => MyGuid;
     protected override ImageReference GetIcon(IDotNetImageService dnImgMgr) 
         => Context.Attributes.HasFlag(MethodAttributes.Public) ? DsImages.MethodPublic : DsImages.MethodPrivate;
-
+    
     protected override void WriteCore(ITextColorWriter output, IDecompiler decompiler, DocumentNodeWriteOptions options)
     {
         output.Write(Context.MethodName);
@@ -138,10 +142,10 @@ public class MethodNode : DsDocumentNode, IDecompileSelf
             }
             else
             {
-                var lifted = IsilLifter.Lift(Context, Document);
-                for (var i = 0; i < lifted.Count; i++)
+                var lifted = Lifted.Value;
+                foreach (var emitBlock in lifted)
                 {
-                    lifted[i].Write(write, true);
+                    emitBlock.Write(write, true);
                 }
             }
         }
@@ -172,7 +176,7 @@ public class MethodNode : DsDocumentNode, IDecompileSelf
         else
             write.Write("void", BoxedTextColor.Keyword);
         write.Write(" ", BoxedTextColor.Local);
-        write.Write(def.Name ?? string.Empty, def.IsStatic ? BoxedTextColor.StaticMethod : BoxedTextColor.InstanceMethod);
+        write.Write(def.Name ?? string.Empty, this, DecompilerReferenceFlags.None, def.IsStatic ? BoxedTextColor.StaticMethod : BoxedTextColor.InstanceMethod);
         write.Write("(", BoxedTextColor.Local);
         if (def.Parameters != null)
         {
