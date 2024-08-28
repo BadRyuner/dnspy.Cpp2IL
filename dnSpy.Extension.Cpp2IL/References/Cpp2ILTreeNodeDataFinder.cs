@@ -86,17 +86,12 @@ sealed class Cpp2ILTreeNodeDataFinder : IDocumentTreeNodeDataFinder
             return null;
         
         Il2CppTypeDefinition? type = typeDef ?? typeReference.ToTypeDefinition();
-        string? typeNamespace;
-        string? typeName;
-
-        if (type != null)
+        string? typeNamespace = null;
+        string? typeName = null;
+        
+        if (type == null && typeReference != null)
         {
-            typeNamespace = type.Namespace!;
-            typeName = type.Name!;
-        }
-        else
-        {
-            (typeNamespace, typeName) = typeReference?.Type switch
+            (typeNamespace, typeName) = typeReference.Type switch
             {
                 Il2CppTypeEnum.IL2CPP_TYPE_OBJECT => ("System", "Object"),
                 Il2CppTypeEnum.IL2CPP_TYPE_STRING => ("System", "String"),
@@ -120,45 +115,7 @@ sealed class Cpp2ILTreeNodeDataFinder : IDocumentTreeNodeDataFinder
                 
         if (type != null || typeName != null)
         {
-            var namespaceNodes = documentNode
-                .TreeNode
-                .DataChildren
-                .Cast<AssemblyNode>()
-                .SelectMany(static assembly =>
-                {
-                    assembly.TreeNode.EnsureChildrenLoaded();
-                    return assembly.TreeNode.DataChildren.Cast<NamespaceNode>();
-                })
-                .Where(ns =>
-                {
-                    ns.TreeNode.EnsureChildrenLoaded();
-                    return ns.Types[0].Namespace == typeNamespace;
-                });
-                    
-            foreach (var namespaceNode in namespaceNodes)
-            {
-                var types = namespaceNode.TreeNode.DataChildren.Cast<TypeNode>();
-                var result = RecursiveTypeSearch(types, type, typeName);
-                if (result != null)
-                    return result;
-            }
-        }
-
-        return null;
-    }
-
-    private static TypeNode? RecursiveTypeSearch(IEnumerable<TypeNode> nodes, Il2CppTypeDefinition? type, string? name)
-    {
-        foreach (var typeNode in nodes)
-        {
-            var def = typeNode.Context.Definition;
-            if (type != null ? def == type : def!.Name == name)
-                return typeNode;
-            typeNode.TreeNode.EnsureChildrenLoaded();
-            var nested = typeNode.GetTreeNodeData.Where(treeNodeData => treeNodeData is TypeNode).Cast<TypeNode>();
-            var nestedResult = RecursiveTypeSearch(nested, type, name);
-            if (nestedResult != null)
-                return nestedResult;
+            return documentNode.AllTypes.FirstOrDefault(t => t.Context.Definition == typeDef || (t.Context.Name == typeName && t.Context.Namespace == typeNamespace));
         }
 
         return null;

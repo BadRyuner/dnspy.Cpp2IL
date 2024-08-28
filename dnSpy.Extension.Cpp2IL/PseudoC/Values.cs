@@ -1,10 +1,13 @@
 ﻿using System.Globalization;
+using System.Linq;
 using System.Text.RegularExpressions;
 using Cpp2IL.Core.Model.Contexts;
 using Cpp2ILAdapter.References;
+using Cpp2ILAdapter.TreeView;
 using dnSpy.Contracts.Decompiler;
 using dnSpy.Contracts.Text;
 using LibCpp2IL;
+using LibCpp2IL.Metadata;
 using LibCpp2IL.Reflection;
 
 namespace Cpp2ILAdapter.PseudoC;
@@ -171,7 +174,20 @@ public sealed record MetadataReference(MetadataUsage Metadata) : Value
             output.Write("__methodref__", BoxedTextColor.Keyword);
             output.Write("(", BoxedTextColor.Punctuation);
             var ty = (Cpp2IlMethodRef)Metadata.Value;
-            output.Write(ty.ToString(), new Cpp2ILMethodReferenceFromRef(ty), DecompilerReferenceFlags.None, BoxedTextColor.Type);
+            output.Write(ty.ToString(), new Cpp2ILMethodReferenceFromRef(ty), DecompilerReferenceFlags.None, BoxedTextColor.InstanceMethod);
+            output.Write(")", BoxedTextColor.Punctuation);
+        }
+        else if (Metadata.Type == MetadataUsageType.MethodDef)
+        {
+            output.Write("__methoddef__", BoxedTextColor.Keyword);
+            output.Write("(", BoxedTextColor.Punctuation);
+            var ty = (Il2CppMethodDefinition)Metadata.Value;
+            var tyy = Cpp2ILDocumentNode.CurrentInstance.AllTypes
+                .SelectMany(static t => t.GetTreeNodeData.OfType<MethodNode>())
+                .FirstOrDefault(m => m.Context.Definition == ty)?.Context;
+            output.Write(ty.DeclaringType?.Name ?? string.Empty, new Cpp2ILTypeDefReference(ty.DeclaringType), DecompilerReferenceFlags.None, BoxedTextColor.Type);
+            output.Write(".", BoxedTextColor.Punctuation);
+            output.Write(ty.Name ?? string.Empty, new Cpp2ILMethodReference(tyy), DecompilerReferenceFlags.None, BoxedTextColor.InstanceMethod);
             output.Write(")", BoxedTextColor.Punctuation);
         }
         else if (Metadata.Type == MetadataUsageType.StringLiteral)

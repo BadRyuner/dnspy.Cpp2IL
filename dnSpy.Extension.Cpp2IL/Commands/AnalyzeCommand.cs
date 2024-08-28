@@ -33,6 +33,7 @@ sealed class AnalyzeCommand : MenuItemBase
         return context.Find<TextReference>()?.Reference is TreeView.MethodNode 
             or TreeView.FieldNode 
             or Cpp2ILMethodReference 
+            or Cpp2ILMethodReferenceFromRef
             or Cpp2ILFieldReference;
     }
 
@@ -43,6 +44,7 @@ sealed class AnalyzeCommand : MenuItemBase
             TreeView.MethodNode mn => new Analyzer.Nodes.MethodNode(mn),
             TreeView.FieldNode fn => new Analyzer.Nodes.FieldNode(fn),
             Cpp2ILMethodReference mr => _documentTreeView.FindNode(mr) is TreeView.MethodNode mnn ? new Analyzer.Nodes.MethodNode(mnn) : null,
+            Cpp2ILMethodReferenceFromRef mr => _documentTreeView.FindNode(mr) is TreeView.MethodNode mnn ? new Analyzer.Nodes.MethodNode(mnn) : null,
             Cpp2ILFieldReference fr => _documentTreeView.FindNode(fr) is TreeView.FieldNode fnn ? new Analyzer.Nodes.FieldNode(fnn) : null,
             _ => null
         };

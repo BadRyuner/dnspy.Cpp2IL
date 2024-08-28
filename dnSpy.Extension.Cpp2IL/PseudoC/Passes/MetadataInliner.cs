@@ -1,4 +1,5 @@
-﻿using Cpp2IL.Core.Model.Contexts;
+﻿using System.Runtime.CompilerServices;
+using Cpp2IL.Core.Model.Contexts;
 using LibCpp2IL;
 
 namespace Cpp2ILAdapter.PseudoC.Passes;
@@ -15,7 +16,7 @@ public class MetadataInliner : BasePass
     
     public override void AcceptExpression(ref Expression expression)
     {
-        if (expression is { Left: Immediate imm1 })
+        if (expression is { Kind: ExpressionKind.Deref, First: Immediate imm1 })
         {
             try
             {
@@ -24,13 +25,13 @@ public class MetadataInliner : BasePass
 
                 if (global is { IsValid: true })
                 {
-                    expression.Left = new MetadataReference(global);
+                    expression = Unsafe.As<Expression>(new MetadataReference(global));
                     goto exit;
                 }
                 
                 global = LibCpp2IlMain.GetAnyGlobalByAddress(_binary.ReadPointerAtVirtualAddress(ptr));
                 if (global is { IsValid: true })
-                    expression.Left = new MetadataReference(global);
+                    expression = Unsafe.As<Expression>(new MetadataReference(global));
             }
             catch
             {

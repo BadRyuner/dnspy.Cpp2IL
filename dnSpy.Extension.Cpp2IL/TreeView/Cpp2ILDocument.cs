@@ -138,16 +138,6 @@ public sealed class Cpp2ILDocumentNode : DsDocumentNode, IDecompileSelf, IReflec
 
     public readonly AssemblyNode[] Children;
     public readonly TypeNode[] AllTypes;
-    public bool IsAssemblyAnalyzed = false;
-
-    public void CheckIsAnalyzed()
-    {
-        if (!IsAssemblyAnalyzed)
-        {
-            MessageBox.Show("The assembly will now be analyzed in its entirety. The application will freeze for a few minutes.");
-            IsAssemblyAnalyzed = true;
-        }
-    }
     
     public override IEnumerable<TreeNodeData> CreateChildren() => Children;
 
