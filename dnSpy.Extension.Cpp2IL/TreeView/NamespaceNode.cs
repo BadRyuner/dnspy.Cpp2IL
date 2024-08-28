@@ -26,7 +26,7 @@ public class NamespaceNode : DsDocumentNode, IReflect
 
     protected override void WriteCore(ITextColorWriter output, IDecompiler decompiler, DocumentNodeWriteOptions options)
     {
-        output.Write(Types[0].Namespace);
+        output.Write(TextColor.Namespace, Types[0].Namespace);
     }
 
     public readonly TypeNode[] Children;

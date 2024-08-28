@@ -1,4 +1,5 @@
 ﻿using System.Collections.Frozen;
+using System.Linq;
 using System.Reflection;
 using Cpp2IL.Core.ISIL;
 using Cpp2IL.Core.Model.Contexts;
@@ -30,7 +31,9 @@ public class MethodNode : DsDocumentNode, IDecompileSelf
     public new readonly Cpp2ILDocument Document;
     public readonly Lazy<FrozenSet<EmitBlock>> Lifted;
     
-    public string DisplayName => $"{Context.DeclaringType?.FullName}::{Context.MethodName}";
+    public bool IsStatic => (Context.MethodAttributes & MethodAttributes.Static) != 0;
+    
+    public string DisplayName => $"{Context.ReturnType.OriginalTypeName} {Context.DeclaringType?.FullName}::{Context.MethodName}({string.Join(',', Context.Parameters.Select(p => $"{p.ParameterType.GetName()} {p.ParameterName}"))})";
     
     public override Guid Guid => MyGuid;
     protected override ImageReference GetIcon(IDotNetImageService dnImgMgr) 
@@ -38,7 +41,24 @@ public class MethodNode : DsDocumentNode, IDecompileSelf
     
     protected override void WriteCore(ITextColorWriter output, IDecompiler decompiler, DocumentNodeWriteOptions options)
     {
-        output.Write(Context.MethodName);
+        output.Write(IsStatic ? TextColor.StaticMethod 
+            : TextColor.InstanceMethod, Context.MethodName);
+        output.Write(TextColor.Punctuation, "(");
+        var def = Context.Definition;
+        if (def?.Parameters != null)
+        {
+            bool first = true;
+            foreach (var parameter in def.Parameters)
+            {
+                if (!first)
+                    output.Write(TextColor.Punctuation, ", ");
+                output.Write(TextColor.Type, parameter.Type.ToString());
+                output.Write(TextColor.Punctuation, " ");
+                output.Write(TextColor.Local, parameter.ParameterName);
+                first = false;
+            }
+        }
+        output.Write(TextColor.Punctuation, ")");
     }
 
     public bool Decompile(IDecompileNodeContext context)
@@ -72,7 +92,6 @@ public class MethodNode : DsDocumentNode, IDecompileSelf
             }
             else
             {
-                var white = BoxedTextColor.Local;
                 foreach (var instruction in Context.ConvertedIsil)
                 {
                     write.Write(instruction.InstructionIndex.ToString("000"), BoxedTextColor.AsmLabelAddress);

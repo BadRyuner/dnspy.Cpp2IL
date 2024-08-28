@@ -4,6 +4,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Windows;
+using AssetRipper.Primitives;
 using Cpp2IL.Core;
 using Cpp2IL.Core.Model.Contexts;
 using dnSpy.Contracts.Decompiler;
@@ -29,24 +30,42 @@ public sealed class Cpp2ILDocument : DsDocument
     
     public Cpp2ILDocument(string filePath)
     {
-        var fileInfo = new FileInfo(filePath);
-        _key = new FilenameKey(filePath);
-        FilePath = filePath;
-        RuntimeArgs = new();
-        if (filePath.EndsWith(".dll"))
+        try
         {
-            var gameFolder = fileInfo.Directory!.FullName;
-            var dataFolder = fileInfo.Directory.GetDirectories()
-                .First(d => d.Name.EndsWith("_Data"));
-            var gameExe = dataFolder.Name.Replace("_Data", null);
-            FileHelper.ResolvePathsFromCommandLine(gameFolder, gameExe, ref RuntimeArgs);
+            var fileInfo = new FileInfo(filePath);
+            _key = new FilenameKey(filePath);
+            FilePath = filePath;
+            RuntimeArgs = new();
+            if (filePath.EndsWith(".dll"))
+            {
+                var gameFolder = fileInfo.Directory!.FullName;
+                var dataFolder = fileInfo.Directory.GetDirectories()
+                    .First(d => d.Name.EndsWith("_Data"));
+                var gameExe = dataFolder.Name.Replace("_Data", null);
+                FileHelper.ResolvePathsFromCommandLine(gameFolder, gameExe, ref RuntimeArgs);
+            }
+            else if (filePath.EndsWith(".wasm"))
+            {
+                RuntimeArgs.PathToAssembly = filePath;
+                RuntimeArgs.PathToMetadata = fileInfo.Directory!.GetFiles().First(f => f.FullName.EndsWith(".dat"))
+                    .FullName;
+                RuntimeArgs.WasmFrameworkJsFile =
+                    fileInfo.Directory!.GetFiles().First(f => f.FullName.EndsWith(".js")).FullName;
+                RuntimeArgs.UnityVersion = UnityVersion.MaxVersion;
+            }
+            else
+            {
+                FileHelper.ResolvePathsFromCommandLine(filePath, null, ref RuntimeArgs);
+            }
+
+            Cpp2IlApi.InitializeLibCpp2Il(RuntimeArgs.PathToAssembly, RuntimeArgs.PathToMetadata,
+                RuntimeArgs.UnityVersion);
+            Context = Cpp2IlApi.CurrentAppContext!;
         }
-        else
+        catch(Exception e)
         {
-            FileHelper.ResolvePathsFromCommandLine(filePath, null, ref RuntimeArgs);
+            MessageBox.Show(e.ToString(), "Exception!");
         }
-        Cpp2IlApi.InitializeLibCpp2Il(RuntimeArgs.PathToAssembly, RuntimeArgs.PathToMetadata, RuntimeArgs.UnityVersion);
-        Context = Cpp2IlApi.CurrentAppContext!;
     }
 
     public override DsDocumentInfo? SerializedDocument => new DsDocumentInfo(FilePath, MyGuid);
@@ -74,7 +93,9 @@ internal sealed class Cpp2ILDocumentProvider : IDsDocumentProvider
             (documentInfo.Name.EndsWith("GameAssembly.dll", StringComparison.OrdinalIgnoreCase) 
              || documentInfo.Name.EndsWith("GameAssembly.so", StringComparison.OrdinalIgnoreCase)
              || documentInfo.Name.EndsWith(".apk", StringComparison.OrdinalIgnoreCase)
-             || documentInfo.Name.EndsWith(".xapk", StringComparison.OrdinalIgnoreCase)))
+             || documentInfo.Name.EndsWith(".xapk", StringComparison.OrdinalIgnoreCase)
+             || documentInfo.Name.EndsWith(".ipa", StringComparison.OrdinalIgnoreCase)
+             || documentInfo.Name.EndsWith(".wasm", StringComparison.OrdinalIgnoreCase)))
             return true;
         
         return false;
@@ -100,7 +121,7 @@ public sealed class Cpp2ILDocumentNode : DsDocumentNode, IDecompileSelf, IReflec
                 allTypes.Add(treeNodeData);
         }
 
-        AllTypes = allTypes.ToFrozenSet();
+        AllTypes = allTypes.ToArray();
         
         CurrentInstance = this;
     }
@@ -116,7 +137,7 @@ public sealed class Cpp2ILDocumentNode : DsDocumentNode, IDecompileSelf, IReflec
     }
 
     public readonly AssemblyNode[] Children;
-    public readonly FrozenSet<TypeNode> AllTypes;
+    public readonly TypeNode[] AllTypes;
     public bool IsAssemblyAnalyzed = false;
 
     public void CheckIsAnalyzed()

@@ -46,6 +46,8 @@ public class TypeNode : DsDocumentNode, IDecompileSelf, IReflect
 
     public bool IsStatic => (Context.TypeAttributes & TypeAttributes.Abstract) != 0 
                             && (Context.TypeAttributes & TypeAttributes.Sealed) != 0;
+
+    public bool IsValueType => Context.IsValueType;
     
     private TreeNodeData[]? _treeNodeData;
     
@@ -110,7 +112,10 @@ public class TypeNode : DsDocumentNode, IDecompileSelf, IReflect
 
     protected override void WriteCore(ITextColorWriter output, IDecompiler decompiler, DocumentNodeWriteOptions options)
     {
-        output.Write(Context.Name);
+        output.Write(IsValueType ? TextColor.ValueType 
+            : IsSealed ? TextColor.SealedType
+            : IsStatic ? TextColor.StaticType
+            : TextColor.Type, Context.Name);
     }
 
     public override IEnumerable<TreeNodeData> CreateChildren() => GetTreeNodeData;

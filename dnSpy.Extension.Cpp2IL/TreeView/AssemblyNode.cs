@@ -27,7 +27,7 @@ public class AssemblyNode : DsDocumentNode, IReflect
 
     protected override void WriteCore(ITextColorWriter output, IDecompiler decompiler, DocumentNodeWriteOptions options)
     {
-        output.Write(Context.CleanAssemblyName);
+        output.Write(TextColor.Assembly, Context.CleanAssemblyName);
     }
 
     public readonly NamespaceNode[] Children;

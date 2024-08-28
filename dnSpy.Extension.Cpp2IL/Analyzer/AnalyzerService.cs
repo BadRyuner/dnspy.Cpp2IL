@@ -46,13 +46,15 @@ sealed class AnalyzerService : IAnalyzerService {
     public ITreeView TreeView { get; }
 
     public readonly IDocumentTabService DocumentTabService;
+    public readonly ITreeViewNodeTextElementProvider TreeViewNodeTextElementProvider;
 
     [ImportingConstructor]
     AnalyzerService(IWpfCommandService wpfCommandService, IDocumentTabService documentTabService, ITreeViewService treeViewService, IMenuService menuService, IDotNetImageService dotNetImageService, IDecompilerService decompilerService, ITreeViewNodeTextElementProvider treeViewNodeTextElementProvider)
     {
         Instance = this;
         DocumentTabService = documentTabService;
-
+        TreeViewNodeTextElementProvider = treeViewNodeTextElementProvider;
+        
         var options = new TreeViewOptions {
             CanDragAndDrop = false
         };

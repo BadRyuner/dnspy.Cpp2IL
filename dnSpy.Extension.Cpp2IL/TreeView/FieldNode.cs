@@ -7,7 +7,6 @@ using dnSpy.Contracts.Documents.Tabs.DocViewer;
 using dnSpy.Contracts.Documents.TreeView;
 using dnSpy.Contracts.Images;
 using dnSpy.Contracts.Text;
-using LibCpp2IL.BinaryStructures;
 
 namespace Cpp2ILAdapter.TreeView;
 
@@ -22,7 +21,9 @@ public class FieldNode : DsDocumentNode, IDecompileSelf
 
     public new readonly FieldAnalysisContext Context;
 
-    public string DisplayName => $"{Context.DeclaringType.FullName}::{Context.FieldName}";
+    public bool IsStatic => (Context.FieldAttributes & FieldAttributes.Static) != 0;
+    
+    public string DisplayName => $"{Context.FieldType.GetName()} {Context.DeclaringType.FullName}::{Context.FieldName}";
     
     public override Guid Guid => MyGuid;
     protected override ImageReference GetIcon(IDotNetImageService dnImgMgr) 
@@ -30,7 +31,7 @@ public class FieldNode : DsDocumentNode, IDecompileSelf
 
     protected override void WriteCore(ITextColorWriter output, IDecompiler decompiler, DocumentNodeWriteOptions options)
     {
-        output.Write(Context.Name);
+        output.Write(IsStatic ? TextColor.StaticField : TextColor.InstanceField, Context.Name);
     }
 
     public bool Decompile(IDecompileNodeContext context)
