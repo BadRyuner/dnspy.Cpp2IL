@@ -34,7 +34,10 @@ sealed class AnalyzeCommand : MenuItemBase
             or TreeView.FieldNode 
             or Cpp2ILMethodReference 
             or Cpp2ILMethodReferenceFromRef
-            or Cpp2ILFieldReference;
+            or Cpp2ILFieldReference
+            or Cpp2ILDirectReference
+            or Cpp2ILTypeDefReference
+            or TreeView.TypeNode;
     }
 
     public override void Execute(IMenuItemContext context)
@@ -43,9 +46,12 @@ sealed class AnalyzeCommand : MenuItemBase
         {
             TreeView.MethodNode mn => new Analyzer.Nodes.MethodNode(mn),
             TreeView.FieldNode fn => new Analyzer.Nodes.FieldNode(fn),
+            TreeView.TypeNode tn => new Analyzer.Nodes.TypeNode(tn),
             Cpp2ILMethodReference mr => _documentTreeView.FindNode(mr) is TreeView.MethodNode mnn ? new Analyzer.Nodes.MethodNode(mnn) : null,
             Cpp2ILMethodReferenceFromRef mr => _documentTreeView.FindNode(mr) is TreeView.MethodNode mnn ? new Analyzer.Nodes.MethodNode(mnn) : null,
             Cpp2ILFieldReference fr => _documentTreeView.FindNode(fr) is TreeView.FieldNode fnn ? new Analyzer.Nodes.FieldNode(fnn) : null,
+            Cpp2ILDirectReference dr => new Analyzer.Nodes.TypeNode(dr.Node),
+            Cpp2ILTypeDefReference tn => _documentTreeView.FindNode(tn) is TreeView.TypeNode tnn ? new Analyzer.Nodes.TypeNode(tnn) : null,
             _ => null
         };
         

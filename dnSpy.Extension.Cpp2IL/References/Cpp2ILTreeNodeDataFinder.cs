@@ -39,13 +39,6 @@ sealed class Cpp2ILTreeNodeDataFinder : IDocumentTreeNodeDataFinder
 
                 return TypeSearch(null, typeDefReference.Type, documentNode);
             }
-            case Cpp2ILTypeReference typeReference:
-            {
-                if (typeReference.Type == null)
-                    return null;
-                
-                return TypeSearch(typeReference.Type, null, documentNode);
-            }
             case Cpp2ILMethodReference methodReference:
             {
                 var method = methodReference.Method;

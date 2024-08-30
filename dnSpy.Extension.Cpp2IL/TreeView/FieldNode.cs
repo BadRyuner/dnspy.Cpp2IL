@@ -61,7 +61,7 @@ public class FieldNode : DsDocumentNode, IDecompileSelf
             if (Context.IsStatic)
                 write.Write("static ", BoxedTextColor.Keyword);
         }
-        write.Write(Context.FieldType!.GetName(), new Cpp2ILTypeReference(Context.FieldType!), DecompilerReferenceFlags.None, BoxedTextColor.Type);
+        write.Write(Context.FieldType!.GetName(), new Cpp2ILTypeDefReference(Context.FieldTypeContext.Definition), DecompilerReferenceFlags.None, BoxedTextColor.Type);
         write.Write(" ", BoxedTextColor.Local);
         write.Write(Context.FieldName, this, DecompilerReferenceFlags.None, BoxedTextColor.InstanceField);
         write.WriteLine(";", BoxedTextColor.Local);

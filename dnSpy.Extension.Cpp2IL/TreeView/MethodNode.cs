@@ -191,20 +191,20 @@ public class MethodNode : DsDocumentNode, IDecompileSelf
         write.Write(def.Attributes.HasFlag(MethodAttributes.Public) ? "public " : "private ", BoxedTextColor.Keyword);
         write.Write(def.IsStatic ? "static " : string.Empty, BoxedTextColor.Keyword);
         if (def.RawReturnType?.Type != Il2CppTypeEnum.IL2CPP_TYPE_VOID)
-            write.Write(def.ReturnType?.ToString() ?? string.Empty, new Cpp2ILTypeReference(def.RawReturnType), DecompilerReferenceFlags.None, BoxedTextColor.Type);
+            write.Write(def.ReturnType?.ToString() ?? string.Empty, new Cpp2ILTypeDefReference(Context.ReturnTypeContext.Definition), DecompilerReferenceFlags.None, BoxedTextColor.Type);
         else
             write.Write("void", BoxedTextColor.Keyword);
         write.Write(" ", BoxedTextColor.Local);
         write.Write(def.Name ?? string.Empty, this, DecompilerReferenceFlags.None, def.IsStatic ? BoxedTextColor.StaticMethod : BoxedTextColor.InstanceMethod);
         write.Write("(", BoxedTextColor.Local);
-        if (def.Parameters != null)
+        if (Context.Parameters.Count != 0)
         {
             bool first = true;
-            foreach (var parameter in def.Parameters)
+            foreach (var parameter in Context.Parameters)
             {
                 if (!first)
                     write.Write(", ", BoxedTextColor.Local);
-                write.Write(parameter.Type.ToString(), new Cpp2ILTypeReference(parameter.RawType), DecompilerReferenceFlags.None, BoxedTextColor.Type);
+                write.Write(parameter.ParameterTypeContext.Name, new Cpp2ILTypeDefReference(parameter.ParameterTypeContext.Definition), DecompilerReferenceFlags.None, BoxedTextColor.Type);
                 write.Write(" ", BoxedTextColor.Local);
                 write.Write(parameter.ParameterName, BoxedTextColor.Local);
                 first = false;

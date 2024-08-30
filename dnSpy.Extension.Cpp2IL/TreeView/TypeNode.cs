@@ -138,8 +138,9 @@ public class TypeNode : DsDocumentNode, IDecompileSelf, IReflect
     {
         var write = context.Output;
 
-        if (Context.CustomAttributes == null)
+        if (Context.CustomAttributes == null || Context.CustomAttributes.Count == 0)
             Context.AnalyzeCustomAttributeData();
+        
         IL2CppHelper.DispayAttributes(Context.CustomAttributes, write);
         
         if (Context.IsEnumType) // display as enum
@@ -173,7 +174,7 @@ public class TypeNode : DsDocumentNode, IDecompileSelf, IReflect
             if (Context.BaseType != null)
             {
                 write.Write(" : ", BoxedTextColor.Local);
-                write.Write(Context.BaseType.Name, new Cpp2ILTypeReference(Context.Definition?.RawBaseType), DecompilerReferenceFlags.None, BoxedTextColor.Type);
+                write.Write(Context.BaseType.Name, new Cpp2ILTypeDefReference(Context.BaseType?.Definition), DecompilerReferenceFlags.None, BoxedTextColor.Type);
             }
             write.WriteLine();
         }
@@ -184,7 +185,7 @@ public class TypeNode : DsDocumentNode, IDecompileSelf, IReflect
             if (Context.BaseType != null)
             {
                 write.Write(" : ", BoxedTextColor.Local);
-                write.Write(Context.BaseType.Name ?? string.Empty, new Cpp2ILTypeReference(Context.Definition?.RawBaseType), DecompilerReferenceFlags.None, BoxedTextColor.Type);
+                write.Write(Context.BaseType.Name ?? string.Empty, new Cpp2ILTypeDefReference(Context.BaseType?.Definition), DecompilerReferenceFlags.None, BoxedTextColor.Type);
             }
             write.WriteLine();
         }

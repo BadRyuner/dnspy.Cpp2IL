@@ -10,7 +10,7 @@ namespace Cpp2ILAdapter.References;
 public abstract record Cpp2ILReference;
 
 public sealed record Cpp2ILDirectReference(TypeNode Node) : Cpp2ILReference;
-public sealed record Cpp2ILTypeReference(Il2CppType? Type) : Cpp2ILReference;
+//public sealed record Cpp2ILTypeReference(Il2CppType? Type) : Cpp2ILReference;
 public sealed record Cpp2ILTypeDefReference(Il2CppTypeDefinition? Type) : Cpp2ILReference;
 public sealed record Cpp2ILMethodReference(MethodAnalysisContext Method) : Cpp2ILReference;
 public sealed record Cpp2ILMethodReferenceFromRef(Cpp2IlMethodRef Method) : Cpp2ILReference;
