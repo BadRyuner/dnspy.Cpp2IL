@@ -108,83 +108,101 @@ public static class IL2CppHelper
 
     public static void DispayAttributes(List<AnalyzedCustomAttribute>? customAttributes, IDecompilerOutput write)
     {
-        if (customAttributes?.Count != 0)
+        if (customAttributes != null && customAttributes.Count != 0)
         {
-            for (var i = 0; i < customAttributes?.Count; i++)
+            try
             {
-                var attr = customAttributes[i];
-                write.Write("[", BoxedTextColor.Punctuation);
-                write.Write(attr.Constructor.DeclaringType?.Name ?? string.Empty, new Cpp2ILMethodReference(attr.Constructor), DecompilerReferenceFlags.None, BoxedTextColor.Type);
-                var namedArgs = attr.Fields.Count + attr.Properties.Count;
-                if ((attr.HasAnyParameters || namedArgs != 0) && attr.IsSuitableForEmission) // what the fuck
+                for (var i = 0; i < customAttributes.Count; i++)
                 {
-                    write.Write("(", BoxedTextColor.Punctuation);
-                    var parameters = attr.Constructor.Parameters;
-                    //write.Write($"/* Parameters: {parameters.Count}; ConstructorParameters: {attr.ConstructorParameters.Count}; Fields: {attr.Fields.Count} */", BoxedTextColor.Comment);
-                    for (var index = 0; index < attr.ConstructorParameters.Count; index++)
+                    var attr = customAttributes[i];
+                    write.Write("[", BoxedTextColor.Punctuation);
+                    write.Write(attr.Constructor.DeclaringType?.Name ?? string.Empty,
+                        new Cpp2ILMethodReference(attr.Constructor), DecompilerReferenceFlags.None,
+                        BoxedTextColor.Type);
+                    var namedArgs = attr.Fields.Count + attr.Properties.Count;
+                    if ((attr.HasAnyParameters || namedArgs != 0) && attr.IsSuitableForEmission) // what the fuck
                     {
-                        var parameterInfo = parameters[i];
-                        write.Write(parameterInfo.ParameterName, BoxedTextColor.Parameter);
-                        write.Write(": ", BoxedTextColor.Punctuation);
-                        var parameter = attr.ConstructorParameters[index];
-                        DisplayParameter(parameter, write);
-
-                        static void DisplayParameter(BaseCustomAttributeParameter? parameter, IDecompilerOutput write)
+                        write.Write("(", BoxedTextColor.Punctuation);
+                        var parameters = attr.Constructor.Parameters;
+                        //write.Write($"/* Parameters: {parameters.Count}; ConstructorParameters: {attr.ConstructorParameters.Count}; Fields: {attr.Fields.Count} */", BoxedTextColor.Comment);
+                        for (var index = 0; index < attr.ConstructorParameters.Count; index++)
                         {
-                            if (parameter is CustomAttributeEnumParameter e)
-                                write.Write(e.ToString().Split(' ')[0].Split("::").Last(), BoxedTextColor.Local);
-                            else if (parameter is CustomAttributePrimitiveParameter primitive)
-                                write.Write(primitive.ToString(), primitive.PrimitiveType != Il2CppTypeEnum.IL2CPP_TYPE_STRING
-                                    ? BoxedTextColor.Number
-                                    : BoxedTextColor.String);
-                            else if (parameter is CustomAttributeNullParameter)
-                                write.Write("null", BoxedTextColor.Keyword);
-                            else if (parameter is CustomAttributeArrayParameter arrayParameter)
+                            var parameterInfo = parameters[index];
+                            write.Write(parameterInfo.ParameterName, BoxedTextColor.Parameter);
+                            write.Write(": ", BoxedTextColor.Punctuation);
+                            var parameter = attr.ConstructorParameters[index];
+                            DisplayParameter(parameter, write);
+
+                            static void DisplayParameter(BaseCustomAttributeParameter? parameter,
+                                IDecompilerOutput write)
                             {
-                                write.Write("[", BoxedTextColor.Punctuation);
-                                foreach (var baseCustomAttributeParameter in arrayParameter.ArrayElements)
+                                if (parameter is CustomAttributeEnumParameter e)
+                                    write.Write(e.ToString().Split(' ')[0].Split("::").Last(), BoxedTextColor.Local);
+                                else if (parameter is CustomAttributePrimitiveParameter primitive)
+                                    write.Write(primitive.ToString(),
+                                        primitive.PrimitiveType != Il2CppTypeEnum.IL2CPP_TYPE_STRING
+                                            ? BoxedTextColor.Number
+                                            : BoxedTextColor.String);
+                                else if (parameter is CustomAttributeNullParameter)
+                                    write.Write("null", BoxedTextColor.Keyword);
+                                else if (parameter is CustomAttributeArrayParameter arrayParameter)
                                 {
-                                    DisplayParameter(baseCustomAttributeParameter, write);
+                                    write.Write("[", BoxedTextColor.Punctuation);
+                                    foreach (var baseCustomAttributeParameter in arrayParameter.ArrayElements)
+                                    {
+                                        DisplayParameter(baseCustomAttributeParameter, write);
+                                    }
+
+                                    write.Write("]", BoxedTextColor.Punctuation);
                                 }
-                                write.Write("]", BoxedTextColor.Punctuation);
+                                else if (parameter is CustomAttributeTypeParameter typeParameter)
+                                {
+                                    write.Write("typeof", BoxedTextColor.Keyword);
+                                    write.Write("(", BoxedTextColor.Punctuation);
+                                    write.Write(typeParameter.Type.GetName(), new Cpp2ILTypeDefReference(typeParameter.Type.ToTypeDefinition()), DecompilerReferenceFlags.None, BoxedTextColor.Type);
+                                    write.Write(")", BoxedTextColor.Punctuation);
+                                }
+                                else
+                                    write.Write(parameter?.ToString() ?? string.Empty, BoxedTextColor.Local);
                             }
-                            else if (parameter is CustomAttributeTypeParameter typeParameter)
-                            {
-                                write.Write("typeof", BoxedTextColor.Keyword);
-                                write.Write("(", BoxedTextColor.Punctuation);
-                                write.Write(typeParameter.Type.GetName(), BoxedTextColor.Type);
-                                write.Write(")", BoxedTextColor.Punctuation);
-                            }
-                            else
-                                write.Write(parameter?.ToString() ?? string.Empty, BoxedTextColor.Local);
+
+                            if (index != attr.ConstructorParameters.Count - 1 || attr.Fields.Count != 0 || attr.Properties.Count != 0)
+                                write.Write(", ", BoxedTextColor.Punctuation);
                         }
-                    
-                        if (index != attr.ConstructorParameters.Count - 1 && (attr.Fields.Count != 0 || attr.Properties.Count != 0))
-                            write.Write(",", BoxedTextColor.Punctuation);
+
+                        for (var index = 0; index < attr.Fields.Count; index++)
+                        {
+                            var customAttributeField = attr.Fields[index];
+                            write.Write(customAttributeField.Field.Name,
+                                new Cpp2ILFieldReference(customAttributeField.Field), DecompilerReferenceFlags.None,
+                                BoxedTextColor.InstanceProperty);
+                            write.Write(" = ", BoxedTextColor.Punctuation);
+                            write.Write(customAttributeField.Value.ToString() ?? string.Empty, BoxedTextColor.Local);
+                            if (index != attr.Fields.Count - 1 && attr.Properties.Count != 0)
+                                write.Write(",", BoxedTextColor.Punctuation);
+                        }
+
+                        for (var index = 0; index < attr.Properties.Count; index++)
+                        {
+                            var customAttributeProperty = attr.Properties[index];
+                            write.Write(customAttributeProperty.Property.Name,
+                                new Cpp2ILMethodReference(customAttributeProperty.Property.Setter!),
+                                DecompilerReferenceFlags.None, BoxedTextColor.InstanceProperty);
+                            write.Write(" = ", BoxedTextColor.Punctuation);
+                            write.Write(customAttributeProperty.Value.ToString() ?? string.Empty, BoxedTextColor.Local);
+                            if (index != attr.Properties.Count - 1)
+                                write.Write(",", BoxedTextColor.Punctuation);
+                        }
+
+                        write.Write(")", BoxedTextColor.Punctuation);
                     }
 
-                    for (var index = 0; index < attr.Fields.Count; index++)
-                    {
-                        var customAttributeField = attr.Fields[index];
-                        write.Write(customAttributeField.Field.Name, new Cpp2ILFieldReference(customAttributeField.Field), DecompilerReferenceFlags.None, BoxedTextColor.InstanceProperty);
-                        write.Write(" = ", BoxedTextColor.Punctuation);
-                        write.Write(customAttributeField.Value.ToString() ?? string.Empty, BoxedTextColor.Local);
-                        if (index != attr.Fields.Count - 1 && attr.Properties.Count != 0)
-                            write.Write(",", BoxedTextColor.Punctuation);
-                    }
-                    for (var index = 0; index < attr.Properties.Count; index++)
-                    {
-                        var customAttributeProperty = attr.Properties[index];
-                        write.Write(customAttributeProperty.Property.Name, new Cpp2ILMethodReference(customAttributeProperty.Property.Setter!), DecompilerReferenceFlags.None, BoxedTextColor.InstanceProperty);
-                        write.Write(" = ", BoxedTextColor.Punctuation);
-                        write.Write(customAttributeProperty.Value.ToString() ?? string.Empty, BoxedTextColor.Local);
-                        if (index != attr.Properties.Count - 1)
-                            write.Write(",", BoxedTextColor.Punctuation);
-                    }
-
-                    write.Write(")", BoxedTextColor.Punctuation);
+                    write.WriteLine("]", BoxedTextColor.Punctuation);
                 }
-                write.WriteLine("]", BoxedTextColor.Punctuation);
+            }
+            catch (Exception e)
+            {
+                write.WriteLine($"/* Exception! {e} */", BoxedTextColor.Comment);
             }
         }
     }
