@@ -47,7 +47,6 @@ public static class IsilLifter
 
                 result.Add(emitBlock);
             }
-
             //new EmitBlockLinker().Start(result, context);
             new RenameRegisters(context.AppContext.InstructionSet is X86InstructionSet).Start(result, context);
             new CreateVariables().Start(result, context);
@@ -57,7 +56,7 @@ public static class IsilLifter
             new StringAnalysis().Start(result, context);
             new ExpressionInliner().Start(result, context);
             
-            return result.OrderBy(_ => _.Index).ToList();
+            return result;
         }
         catch(Exception e)
         {

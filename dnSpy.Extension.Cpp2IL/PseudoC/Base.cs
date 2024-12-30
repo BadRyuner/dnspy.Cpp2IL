@@ -13,7 +13,7 @@ public interface IEmit
     void Write(IDecompilerOutput output, bool end = false);
 }
 
-public abstract class Block : IEmit
+public abstract class Block : IEmit, IComparable<Block>
 {
     public List<IEmit> Items = new(2);
     public void Add(IEmit item) => Items.Add(item);
@@ -36,6 +36,12 @@ public abstract class Block : IEmit
                     expr1.AcceptPass(pass);
             }
         }
+    }
+
+    public int CompareTo(Block? other)
+    {
+        if (other == null) return -1;
+        return Index.CompareTo(other.Index);
     }
 }
 

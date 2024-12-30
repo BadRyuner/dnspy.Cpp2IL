@@ -172,7 +172,7 @@ public class MethodNode : DsDocumentNode, IDecompileSelf
             else
             {
                 var lifted = Lifted.Value;
-                foreach (var emitBlock in lifted)
+                foreach (var emitBlock in lifted.OrderBy(_ => _.BlockIndex))
                 {
                     emitBlock.Write(write, true);
                 }
