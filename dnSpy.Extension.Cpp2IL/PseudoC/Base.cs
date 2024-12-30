@@ -15,7 +15,7 @@ public interface IEmit
 
 public abstract class Block : IEmit
 {
-    public readonly List<IEmit> Items = new(2);
+    public List<IEmit> Items = new(2);
     public void Add(IEmit item) => Items.Add(item);
 
     public uint Index { get; set; }

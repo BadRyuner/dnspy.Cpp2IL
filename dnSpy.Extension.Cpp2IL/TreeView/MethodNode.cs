@@ -31,9 +31,9 @@ public class MethodNode : DsDocumentNode, IDecompileSelf
     public new readonly Cpp2ILDocument Document;
     public readonly Lazy<FrozenSet<EmitBlock>> Lifted;
     
-    public bool IsStatic => (Context.MethodAttributes & MethodAttributes.Static) != 0;
+    public bool IsStatic => (Context.Attributes & MethodAttributes.Static) != 0;
     
-    public string DisplayName => $"{Context.ReturnType.OriginalTypeName} {Context.DeclaringType?.FullName}::{Context.MethodName}({string.Join(',', Context.Parameters.Select(p => $"{p.ParameterType.GetName()} {p.ParameterName}"))})";
+    public string DisplayName => $"{Context.ReturnTypeContext.Name} {Context.DeclaringType?.FullName}::{Context.Name}({string.Join(',', Context.Parameters.Select(p => $"{p.ParameterType.GetName()} {p.ParameterName}"))})";
     
     public override Guid Guid => MyGuid;
     protected override ImageReference GetIcon(IDotNetImageService dnImgMgr) 
@@ -42,7 +42,7 @@ public class MethodNode : DsDocumentNode, IDecompileSelf
     protected override void WriteCore(ITextColorWriter output, IDecompiler decompiler, DocumentNodeWriteOptions options)
     {
         output.Write(IsStatic ? TextColor.StaticMethod 
-            : TextColor.InstanceMethod, Context.MethodName);
+            : TextColor.InstanceMethod, Context.Name);
         output.Write(TextColor.Punctuation, "(");
         var def = Context.Definition;
         if (def?.Parameters != null)
@@ -73,7 +73,7 @@ public class MethodNode : DsDocumentNode, IDecompileSelf
 
     private void RenderIsil(IDecompileNodeContext context)
     {
-        var write = context.Output;
+         var write = context.Output;
         
         if (Context.CustomAttributes == null)
             Context.AnalyzeCustomAttributeData();
@@ -107,6 +107,16 @@ public class MethodNode : DsDocumentNode, IDecompileSelf
                             case InstructionSetIndependentOperand.OperandType.Immediate:
                                 if (index == 0 && instruction.OpCode.Mnemonic == IsilMnemonic.Call)
                                 {
+                                    if (operand.Data is IsilMethodOperand { Method: { } resolvedMethod })
+                                    {
+                                        write.Write($"{resolvedMethod.DeclaringType?.FullName}::{resolvedMethod.Name}", new Cpp2ILMethodReference(resolvedMethod) , DecompilerReferenceFlags.None, BoxedTextColor.StaticMethod);
+                                        break;
+                                    }
+                                    if (operand.Data is IsilImmediateOperand { Value: string funcName })
+                                    {
+                                        write.Write(funcName, BoxedTextColor.StaticMethod);
+                                        break;
+                                    }
                                     var methodPtr = (ulong)((IsilImmediateOperand)operand.Data).Value;
                                     if (Context.AppContext.MethodsByAddress.TryGetValue(methodPtr, out var methods))
                                     {

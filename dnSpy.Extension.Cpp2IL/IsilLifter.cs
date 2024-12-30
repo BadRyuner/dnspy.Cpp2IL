@@ -1,4 +1,5 @@
-﻿using Cpp2IL.Core.InstructionSets;
+﻿using System.Linq;
+using Cpp2IL.Core.InstructionSets;
 using Cpp2IL.Core.ISIL;
 using Cpp2IL.Core.Model.Contexts;
 using Cpp2ILAdapter.IsilEcho;
@@ -123,40 +124,49 @@ public static class IsilLifter
             case IsilMnemonic.Call:
             case IsilMnemonic.CallNoReturn:
             {
-                var args = new InlineEmitBlock(", ");
+                var args = new IEmit[instruction.Operands.Length - 1];
                 for (var i = 1; i < instruction.Operands.Length; i++)
                 {
                     var op = instruction.Operands[i];
-                    args.Add(TransformOperand(op));
+                    args[i - 1] = TransformOperand(op);
                 }
                 
                 IEmit function;
                 bool returns = false;
                 bool returnsFast = false;
                 
-                if (instruction.Operands[0].Data is IsilImmediateOperand imm)
+                // call by rva
+                if (instruction.Operands[0].Data is IsilImmediateOperand { Value: not string } imm)
                 {
                     var funcPtr = (ulong)imm.Value;
-                    if (context.AppContext.MethodsByAddress.TryGetValue(funcPtr, out var methods))
-                    {
-                        var method = methods[0];
-                        function = new ManagedFunctionReference(method);
-                        returns = method.Definition?.RawReturnType?.Type is not Il2CppTypeEnum.IL2CPP_TYPE_VOID;
-                    }
-                    else
-                    {
-                        function = GetUnmanagedFunction(context, funcPtr);
-                        returns = function is KnownFunctionReference k && k.ReturnsValue; // cursed
-                    }
+                    function = new UnmanagedFunctionReference(funcPtr);
+                    returns = true; // cursed
                 }
+                // call by reg
                 else if (instruction.Operands[0].Data is IsilRegisterOperand reg)
                 {
                     function = TransformOperand(instruction.Operands[0]);
-                    returnsFast = true;
+                    returnsFast = true; // not always, but idk how to properly realise it
                 }
-                else throw new NotImplementedException($"Cant transform {{{instruction.Operands[0].Data}}} to function");
+                // call resolved icall
+                else if (instruction.Operands[0].Data is IsilImmediateOperand { Value: string keyFunction })
+                {
+                    var resolvedFunc = ResolveKeyFunction(keyFunction);
+                    returns = resolvedFunc.ReturnsValue;
+                    returnsFast = false;
+                    function = resolvedFunc;
+                }
+                // call resolved method
+                else if (instruction.Operands[0].Data is IsilMethodOperand methodOperand)
+                {
+                    function = new ManagedFunctionReference(methodOperand.Method);
+                    returns = methodOperand.Method.Definition?.RawReturnType?.Type is not Il2CppTypeEnum.IL2CPP_TYPE_VOID;
+                }
+                // what the fuck
+                else
+                    throw new NotImplementedException($"Cant transform {{{instruction.Operands[0].Data}}} (type: {instruction.Operands[0].Data.GetType()}) to function");
 
-                var call = new Expression(ExpressionKind.Call, function, args, instruction.InstructionIndex);
+                IEmit call = new Expression(ExpressionKind.Call, function, new InlineEmitBlock(", ") { Items = args.ToList() }, instruction.InstructionIndex);
                 if (returnsFast)
                     call = new Expression(ExpressionKind.Return, call, Index: instruction.InstructionIndex);
                 else if (returns)
@@ -174,6 +184,9 @@ public static class IsilLifter
                     expr = e;
                 return new Expression(ExpressionKind.Assign, TransformOperand(instruction.Operands[0]), expr);
             }
+            
+            case IsilMnemonic.Nop:
+                return Expression.NopShared;
                 
             case IsilMnemonic.Exchange:
             case IsilMnemonic.ShiftStack:
@@ -304,5 +317,62 @@ public static class IsilLifter
         if (funcPtr == kfa.il2cpp_vm_object_is_inst)
             return KnownFunctionReference.AddrPInvokeLookup;
         return new UnmanagedFunctionReference(funcPtr);
+    }
+    
+    private static KnownFunctionReference ResolveKeyFunction(string function)
+    {
+        if (function == "il2cpp_codegen_initialize_method" ||
+            function == "il2cpp_codegen_initialize_runtime_metadata" ||
+            function == "il2cpp_vm_metadatacache_initializemethodmetadata")
+            return KnownFunctionReference.IL2CppCodegenInitializeMethod;
+            
+        if (function == "il2cpp_runtime_class_init_actual" ||
+            function == "il2cpp_runtime_class_init_export")
+            return KnownFunctionReference.IL2CppRuntimeClassInit;
+            
+        if (function == "il2cpp_codegen_object_new" ||
+            function == "il2cpp_object_new" ||
+            function == "il2cpp_vm_object_new")
+            return KnownFunctionReference.IL2CppObjectNew;
+            
+        if (function == "il2cpp_array_new_specific" ||
+            function == "il2cpp_vm_array_new_specific" ||
+            function == "SzArrayNew")
+            return KnownFunctionReference.IL2CppArrayNewSpecific;
+            
+        if (function == "il2cpp_type_get_object" ||
+            function == "il2cpp_vm_reflection_get_type_object")
+            return KnownFunctionReference.IL2CppTypeGetObject;
+            
+        if (function == "il2cpp_runtime_class_init_actual" ||
+            function == "il2cpp_resolve_icall")
+            return KnownFunctionReference.IL2CppResolveIcall;
+            
+        if (function == "il2cpp_codegen_string_new_wrapper" ||
+            function == "il2cpp_string_new" ||
+            function == "il2cpp_string_new_wrapper" ||
+            function == "il2cpp_vm_string_new" ||
+            function == "il2cpp_vm_string_newWrapper")
+            return KnownFunctionReference.IL2CppStringNew;
+            
+        if (function == "il2cpp_value_box" ||
+            function == "il2cpp_vm_object_box")
+            return KnownFunctionReference.IL2CppValueBox;
+            
+        if (function == "il2cpp_object_unbox" ||
+            function == "il2cpp_vm_object_unbox")
+            return KnownFunctionReference.IL2CppObjectUnbox;
+            
+        if (function == "il2cpp_codegen_raise_exception" ||
+            function == "il2cpp_raise_exception" ||
+            function == "il2cpp_vm_exception_raise")
+            return KnownFunctionReference.IL2CppRaiseException;
+            
+        if (function == "il2cpp_vm_object_is_inst")
+            return KnownFunctionReference.IL2CppVmObjectIsInst;
+            
+        if (function == "il2cpp_vm_object_is_inst")
+            return KnownFunctionReference.AddrPInvokeLookup;
+        return new KnownFunctionReference(IL2CppKeyFunction.Error);
     }
 }

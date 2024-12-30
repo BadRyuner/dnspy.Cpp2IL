@@ -8,6 +8,8 @@ namespace Cpp2ILAdapter.PseudoC;
 
 public sealed record Expression(ExpressionKind Kind, IEmit? Left = null, IEmit? Right = null, uint Index = 0) : IEmit
 {
+    public static readonly Expression NopShared = new Expression(ExpressionKind.Nop); 
+    
     public IEmit? Left = Left;
     public ExpressionKind Kind = Kind;
     public IEmit? Right = Right;

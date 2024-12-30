@@ -2,6 +2,7 @@
 
 public enum IL2CppKeyFunction : byte
 {
+    Error,
     IL2CppCodegenInitializeMethod,
     IL2CppRuntimeClassInit,
     IL2CppObjectNew,

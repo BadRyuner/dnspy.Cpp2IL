@@ -159,7 +159,7 @@ public static class IL2CppHelper
                                 {
                                     write.Write("typeof", BoxedTextColor.Keyword);
                                     write.Write("(", BoxedTextColor.Punctuation);
-                                    write.Write(typeParameter.Type.GetName(), new Cpp2ILTypeDefReference(typeParameter.Type.ToTypeDefinition()), DecompilerReferenceFlags.None, BoxedTextColor.Type);
+                                    write.Write(typeParameter.TypeContext?.Name ?? string.Empty, new Cpp2ILTypeDefReference(typeParameter.TypeContext?.Definition), DecompilerReferenceFlags.None, BoxedTextColor.Type);
                                     write.Write(")", BoxedTextColor.Punctuation);
                                 }
                                 else
