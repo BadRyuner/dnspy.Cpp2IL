@@ -56,8 +56,8 @@ public static class IsilLifter
             new MetadataInliner().Start(result, context);
             new StringAnalysis().Start(result, context);
             new ExpressionInliner().Start(result, context);
-
-            return result;
+            
+            return result.OrderBy(_ => _.Index).ToList();
         }
         catch(Exception e)
         {
