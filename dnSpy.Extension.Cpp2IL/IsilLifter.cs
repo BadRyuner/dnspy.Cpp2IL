@@ -210,7 +210,11 @@ public static class IsilLifter
                 return new Immediate(value);
             }
             case InstructionSetIndependentOperand.OperandType.Register:
-                return new Register(((IsilRegisterOperand)operand.Data).RegisterName);
+                if (operand.Data is IsilRegisterOperand reg)
+                    return new Register(reg.RegisterName);
+                else if (operand.Data is IsilVectorRegisterElementOperand vector)
+                    return new VectorAccess(new Register(vector.RegisterName), new Immediate(vector.Index));
+                throw new NotImplementedException(operand.Data.GetType().ToString());
             case InstructionSetIndependentOperand.OperandType.Instruction:
                 return new InstructionReference(((InstructionSetIndependentInstruction)operand.Data).InstructionIndex);
             case InstructionSetIndependentOperand.OperandType.Memory:

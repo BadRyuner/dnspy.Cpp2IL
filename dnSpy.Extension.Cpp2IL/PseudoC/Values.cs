@@ -48,11 +48,27 @@ public sealed record Variable(string Name) : Value
     }
 }
 
+public sealed record VectorAccess(IEmit Vector, IEmit VIndex) : IEmit
+{
+    public uint Index { get; set; }
+
+    public void Write(IDecompilerOutput output, bool end = false)
+    {
+        Vector.Write(output);
+        output.Write("[", BoxedTextColor.Punctuation);
+        VIndex.Write(output);
+        output.Write("]", BoxedTextColor.Punctuation);
+    }
+}
+
 public sealed record Immediate(IConvertible Value) : Value
 {
     public override void Write(IDecompilerOutput output, bool end = false)
     {
-        output.Write(Value.ToString(CultureInfo.InvariantCulture), BoxedTextColor.Number);
+        if (Value is string)
+            output.Write($"\"{Value.ToString(CultureInfo.InvariantCulture)}\"", BoxedTextColor.String);
+        else
+            output.Write(Value.ToString(CultureInfo.InvariantCulture), BoxedTextColor.Number);
     }
 }
 
