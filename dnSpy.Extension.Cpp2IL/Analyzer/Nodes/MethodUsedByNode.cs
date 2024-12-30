@@ -2,13 +2,12 @@
 using System.Runtime.CompilerServices;
 using System.Threading;
 using Cpp2ILAdapter.PseudoC;
-using Cpp2ILAdapter.PseudoC.Passes;
 using Cpp2ILAdapter.TreeView;
 using LibCpp2IL;
 using LibCpp2IL.Metadata;
 
 namespace Cpp2ILAdapter.Analyzer.Nodes;
-
+/*
 public class MethodUsedByNode(TreeView.MethodNode method) : SearchNode
 {
     public static readonly Guid GUID = new Guid("D1E0CAD0-FB1E-4AD8-B45D-B032C2020DF3");
@@ -19,7 +18,7 @@ public class MethodUsedByNode(TreeView.MethodNode method) : SearchNode
     {
         if (Cpp2ILDocumentNode.CurrentInstance == null)
             yield break;
-        
+
         var pass = new AnalyzerPass(method);
         foreach (var typeNode in Cpp2ILDocumentNode.CurrentInstance.AllTypes)
         {
@@ -38,10 +37,11 @@ public class MethodUsedByNode(TreeView.MethodNode method) : SearchNode
         }
     }
 
+
     sealed class AnalyzerPass(TreeView.MethodNode method) : BasePass
     {
         public bool Found = false;
-        
+
         [SkipLocalsInit]
         public override void AcceptExpression(ref Expression expression)
         {
@@ -67,4 +67,6 @@ public class MethodUsedByNode(TreeView.MethodNode method) : SearchNode
         {
         }
     }
+     
 }
+*/

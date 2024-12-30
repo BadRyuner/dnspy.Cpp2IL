@@ -1,6 +1,3 @@
 [submodule "dnSpy"]
 	path = dnSpy
 	url = https://github.com/dnSpyEx/dnSpy/
-[submodule "Echo"]
-	path = Echo
-	url = https://github.com/Washi1337/Echo/

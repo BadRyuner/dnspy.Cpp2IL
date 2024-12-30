@@ -15,7 +15,7 @@ namespace Cpp2ILAdapter.PseudoC;
 public abstract record Value : IEmit
 {
     public uint Index { get; set; }
-    public abstract void Write(IDecompilerOutput output, bool end = false);
+    public abstract void Write(IDecompilerOutput output);
 }
 
 public sealed record Register : Value
@@ -28,7 +28,7 @@ public sealed record Register : Value
     }
     
     public string Name { get; set; }
-    public override void Write(IDecompilerOutput output, bool end = false)
+    public override void Write(IDecompilerOutput output)
     {
         output.Write(Name, BoxedTextColor.Local);
     }
@@ -42,7 +42,7 @@ public sealed record Variable(string Name) : Value
     /// </summary>
     public object? Type { get; set; }
     public bool IsKeyword = false;
-    public override void Write(IDecompilerOutput output, bool end = false)
+    public override void Write(IDecompilerOutput output)
     {
         output.Write(Name, new Cpp2IlVariableReference(this), DecompilerReferenceFlags.None, IsKeyword ? BoxedTextColor.Keyword : BoxedTextColor.Local);
     }
@@ -50,7 +50,7 @@ public sealed record Variable(string Name) : Value
 
 public sealed record Immediate(IConvertible Value) : Value
 {
-    public override void Write(IDecompilerOutput output, bool end = false)
+    public override void Write(IDecompilerOutput output)
     {
         output.Write(Value.ToString(CultureInfo.InvariantCulture), BoxedTextColor.Number);
     }
@@ -58,7 +58,7 @@ public sealed record Immediate(IConvertible Value) : Value
 
 public sealed record InstructionReference(uint InstructionIndex) : Value
 {
-    public override void Write(IDecompilerOutput output, bool end = false)
+    public override void Write(IDecompilerOutput output)
     {
         output.Write($"ISIL_{InstructionIndex}", BoxedTextColor.Label);
     }
@@ -66,7 +66,7 @@ public sealed record InstructionReference(uint InstructionIndex) : Value
 
 public sealed record LoadString(string Text) : Value
 {
-    public override void Write(IDecompilerOutput output, bool end = false)
+    public override void Write(IDecompilerOutput output)
     {
         output.Write($"\"{Regex.Escape(Text)}\"", BoxedTextColor.String);
     }
@@ -74,7 +74,7 @@ public sealed record LoadString(string Text) : Value
 
 public sealed record ManagedFunctionReference(MethodAnalysisContext Method) : Value
 {
-    public override void Write(IDecompilerOutput output, bool end = false)
+    public override void Write(IDecompilerOutput output)
     {
         if (Method.IsStatic)
         {
@@ -88,7 +88,7 @@ public sealed record ManagedFunctionReference(MethodAnalysisContext Method) : Va
 
 public sealed record UnmanagedFunctionReference(ulong Addr) : Value
 {
-    public override void Write(IDecompilerOutput output, bool end = false)
+    public override void Write(IDecompilerOutput output)
     {
         output.Write("((", BoxedTextColor.Punctuation);
         output.Write("delegate", BoxedTextColor.Keyword);
@@ -99,11 +99,11 @@ public sealed record UnmanagedFunctionReference(ulong Addr) : Value
     }
 }
 
-public sealed record KnownFunctionReference(IL2CppKeyFunction Function) : Value
+public sealed record KnownFunctionReference(IL2CppKeyFunction Function, bool ReturnsValue, bool LikeJmp) : Value
 {
     private readonly string _name = Function.ToString();
     
-    public override void Write(IDecompilerOutput output, bool end = false)
+    public override void Write(IDecompilerOutput output)
     {
         output.Write(_name, new Cpp2ILKeyFunction(Function), DecompilerReferenceFlags.None, BoxedTextColor.ExtensionMethod);
     }
@@ -113,29 +113,24 @@ public sealed record KnownFunctionReference(IL2CppKeyFunction Function) : Value
         IL2CppKeyFunction.IL2CppValueBox => 2,
         _ => 1
     };
-
-    public bool ReturnsValue => Function switch
-    {
-        _ => true,
-    };
     
-    public static readonly KnownFunctionReference IL2CppCodegenInitializeMethod = new(IL2CppKeyFunction.IL2CppCodegenInitializeMethod);
-    public static readonly KnownFunctionReference IL2CppRuntimeClassInit = new(IL2CppKeyFunction.IL2CppRuntimeClassInit);
-    public static readonly KnownFunctionReference IL2CppObjectNew = new(IL2CppKeyFunction.IL2CppObjectNew);
-    public static readonly KnownFunctionReference IL2CppArrayNewSpecific = new(IL2CppKeyFunction.IL2CppArrayNewSpecific);
-    public static readonly KnownFunctionReference IL2CppTypeGetObject = new(IL2CppKeyFunction.IL2CppTypeGetObject);
-    public static readonly KnownFunctionReference IL2CppResolveIcall = new(IL2CppKeyFunction.IL2CppResolveIcall);
-    public static readonly KnownFunctionReference IL2CppStringNew = new(IL2CppKeyFunction.IL2CppStringNew);
-    public static readonly KnownFunctionReference IL2CppValueBox = new(IL2CppKeyFunction.IL2CppValueBox);
-    public static readonly KnownFunctionReference IL2CppObjectUnbox = new(IL2CppKeyFunction.IL2CppObjectUnbox);
-    public static readonly KnownFunctionReference IL2CppRaiseException = new(IL2CppKeyFunction.IL2CppRaiseException);
-    public static readonly KnownFunctionReference IL2CppVmObjectIsInst = new(IL2CppKeyFunction.IL2CppVmObjectIsInst);
-    public static readonly KnownFunctionReference AddrPInvokeLookup = new(IL2CppKeyFunction.AddrPInvokeLookup);
+    public static readonly KnownFunctionReference IL2CppCodegenInitializeMethod = new(IL2CppKeyFunction.IL2CppCodegenInitializeMethod, false, false);
+    public static readonly KnownFunctionReference IL2CppRuntimeClassInit = new(IL2CppKeyFunction.IL2CppRuntimeClassInit, false, false);
+    public static readonly KnownFunctionReference IL2CppObjectNew = new(IL2CppKeyFunction.IL2CppObjectNew, true, false);
+    public static readonly KnownFunctionReference IL2CppArrayNewSpecific = new(IL2CppKeyFunction.IL2CppArrayNewSpecific, true, false);
+    public static readonly KnownFunctionReference IL2CppTypeGetObject = new(IL2CppKeyFunction.IL2CppTypeGetObject, true, false);
+    public static readonly KnownFunctionReference IL2CppResolveIcall = new(IL2CppKeyFunction.IL2CppResolveIcall, true, false);
+    public static readonly KnownFunctionReference IL2CppStringNew = new(IL2CppKeyFunction.IL2CppStringNew, true, false);
+    public static readonly KnownFunctionReference IL2CppValueBox = new(IL2CppKeyFunction.IL2CppValueBox, true, false);
+    public static readonly KnownFunctionReference IL2CppObjectUnbox = new(IL2CppKeyFunction.IL2CppObjectUnbox, true, false);
+    public static readonly KnownFunctionReference IL2CppRaiseException = new(IL2CppKeyFunction.IL2CppRaiseException, true, true);
+    public static readonly KnownFunctionReference IL2CppVmObjectIsInst = new(IL2CppKeyFunction.IL2CppVmObjectIsInst, true, false);
+    public static readonly KnownFunctionReference AddrPInvokeLookup = new(IL2CppKeyFunction.AddrPInvokeLookup, true, false);
 }
 
 public sealed record VariableFunctionReference(Value Reference) : Value
 {
-    public override void Write(IDecompilerOutput output, bool end = false)
+    public override void Write(IDecompilerOutput output)
     {
         output.Write("((", BoxedTextColor.Punctuation);
         output.Write("delegate", BoxedTextColor.Keyword);
@@ -148,7 +143,7 @@ public sealed record VariableFunctionReference(Value Reference) : Value
 
 public sealed record AccessField(FieldAnalysisContext Field) : Value
 {
-    public override void Write(IDecompilerOutput output, bool end = false)
+    public override void Write(IDecompilerOutput output)
     {
         output.Write(Field.Name, new Cpp2ILFieldReference(Field), DecompilerReferenceFlags.None, BoxedTextColor.InstanceField);
     }
@@ -156,7 +151,7 @@ public sealed record AccessField(FieldAnalysisContext Field) : Value
 
 public sealed record MetadataReference(MetadataUsage Metadata) : Value
 {
-    public override void Write(IDecompilerOutput output, bool end = false)
+    public override void Write(IDecompilerOutput output)
     {
         if (Metadata.Type is MetadataUsageType.Type or MetadataUsageType.TypeInfo)
         {

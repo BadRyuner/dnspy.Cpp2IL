@@ -1,178 +1,20 @@
 ﻿using System.Runtime.CompilerServices;
 using Cpp2IL.Core.ISIL;
-using Cpp2ILAdapter.PseudoC.Passes;
 using dnSpy.Contracts.Decompiler;
 using dnSpy.Contracts.Text;
 
 namespace Cpp2ILAdapter.PseudoC;
 
-public sealed record Expression(ExpressionKind Kind, IEmit? Left = null, IEmit? Right = null, uint Index = 0) : IEmit
+public abstract record Expression(ExpressionKind Kind) : IEmit
 {
-    public IEmit? Left = Left;
-    public ExpressionKind Kind = Kind;
-    public IEmit? Right = Right;
+    public bool Eliminated = false;
+    
+    public abstract void Write(IDecompilerOutput output);
 
-    public IEmit? First => Left;
-    public IEmit? Second => Right;
+    public abstract int ChildrenCount { get; }
 
-    public uint Index { get; set; } = Index;
-
-    public void Write(IDecompilerOutput output, bool end = false)
-    {
-        if (Kind == ExpressionKind.Nop) return;
-        
-        switch (Kind)
-        {
-            case ExpressionKind.Assign:
-            case ExpressionKind.Add:
-            case ExpressionKind.Sub:
-            case ExpressionKind.Mul:
-            case ExpressionKind.Div:
-            case ExpressionKind.Rem:
-            case ExpressionKind.Shl:
-            case ExpressionKind.Shr:
-            case ExpressionKind.Or:
-            case ExpressionKind.Xor:
-            case ExpressionKind.And:
-            case ExpressionKind.CompareEq:
-            case ExpressionKind.CompareNeq:
-            case ExpressionKind.CompareGt:
-            case ExpressionKind.CompareGe:
-            case ExpressionKind.CompareLt:
-            case ExpressionKind.CompareLe:
-            case ExpressionKind.MemberAccess:
-                Left?.Write(output);
-                output.Write(GetOperator(Kind), BoxedTextColor.Operator);
-                Right?.Write(output);
-                break;
-            case ExpressionKind.Not:
-                output.Write("(", BoxedTextColor.Punctuation);
-                output.Write("~", BoxedTextColor.Operator);
-                First?.Write(output);
-                output.Write(")", BoxedTextColor.Punctuation);
-                break;
-            case ExpressionKind.Compare:
-                output.Write("__compare__", BoxedTextColor.ExtensionMethod);
-                output.Write("(", BoxedTextColor.Punctuation);
-                Left?.Write(output);
-                output.Write(",", BoxedTextColor.Punctuation);
-                Right?.Write(output);
-                output.Write(")", BoxedTextColor.Punctuation);
-                break;
-            case ExpressionKind.Return:
-                output.Write("return", BoxedTextColor.Keyword);
-                if (First != null)
-                {
-                    output.Write(" ", BoxedTextColor.Punctuation);
-                    First.Write(output);
-                }
-                break;
-            case ExpressionKind.Goto:
-                output.Write("goto ", BoxedTextColor.Keyword);
-                First!.Write(output);
-                break;
-            case ExpressionKind.Deref:
-                output.Write("*(", BoxedTextColor.Punctuation);
-                First!.Write(output);
-                output.Write(")", BoxedTextColor.Punctuation);
-                break;
-            case ExpressionKind.If:
-                output.Write("if ", BoxedTextColor.Keyword);
-                output.Write("(", BoxedTextColor.Punctuation);
-                First!.Write(output);
-                output.Write(")", BoxedTextColor.Punctuation);
-                output.WriteLine();
-                if (Second is EmitBlock)
-                {
-                    output.WriteLine("{", BoxedTextColor.Punctuation);
-                    output.IncreaseIndent();
-                    Second.Write(output);
-                    output.DecreaseIndent();
-                    output.WriteLine("}", BoxedTextColor.Punctuation);
-                    end = false;
-                }
-                else
-                {
-                    output.IncreaseIndent();
-                    Second!.Write(output);
-                    output.DecreaseIndent();
-                }
-                break;
-            case ExpressionKind.Call:
-            {
-                var args = (InlineEmitBlock)Second!;
-                if (First is ManagedFunctionReference { Method.IsStatic: false })
-                {
-                    args.StartIndex = 1;
-                    var thus = args.Items[0];
-                    if (thus is Expression { IsMathExpression: true })
-                    {
-                        output.Write("(", BoxedTextColor.Punctuation);
-                        thus.Write(output);
-                        output.Write(")", BoxedTextColor.Punctuation);
-                    }
-                    else
-                    {
-                        thus.Write(output);
-                    }
-                    output.Write(".", BoxedTextColor.Punctuation);
-                }
-                First!.Write(output);
-                output.Write("(", BoxedTextColor.Punctuation);
-                Second!.Write(output);
-                output.Write(")", BoxedTextColor.Punctuation);
-                break;
-            }
-        }
-        
-        if (end)
-            output.WriteLine(";", BoxedTextColor.Punctuation);
-    }
-
-    public void AcceptPass(BasePass pass)
-    {
-        if (Left is Expression leftExpr)
-        {
-            pass.AcceptExpression(ref Unsafe.As<IEmit, Expression>(ref Left));
-            leftExpr.AcceptPass(pass);
-        }
-        
-        if (Second is Block block)
-        {
-            block.AcceptPass(pass);
-        }
-        else if (Right is Expression rightExpr)
-        {
-            pass.AcceptExpression(ref Unsafe.As<IEmit, Expression>(ref Right));
-            rightExpr.AcceptPass(pass);
-        }
-    }
-
-    public Expression FixIf(IsilMnemonic ifType)
-    {
-        if (First is not Expression)
-            return this;
-        
-        ((Expression)First!).Kind = ifType switch
-        {
-            IsilMnemonic.JumpIfEqual => ExpressionKind.CompareEq,
-            IsilMnemonic.JumpIfNotEqual => ExpressionKind.CompareNeq,
-            IsilMnemonic.JumpIfGreater => ExpressionKind.CompareGt,
-            IsilMnemonic.JumpIfGreaterOrEqual => ExpressionKind.CompareGe,
-            IsilMnemonic.JumpIfLess => ExpressionKind.CompareLt,
-            IsilMnemonic.JumpIfLessOrEqual => ExpressionKind.CompareLe,
-            _ => throw new ArgumentOutOfRangeException()
-        };
-        return this;
-    }
-
-    public void NopSelf()
-    {
-        Kind = ExpressionKind.Nop;
-        Left = null;
-        Right = null;
-    }
-
+    public abstract ref IEmit GetChildren(int id);
+    
     public bool IsMathExpression => Kind switch
     {
         ExpressionKind.Add => true,
@@ -186,9 +28,9 @@ public sealed record Expression(ExpressionKind Kind, IEmit? Left = null, IEmit? 
         _ => false
     };
     
-    private static string GetOperator(ExpressionKind kind)
+    public string GetOperator()
     {
-        return kind switch
+        return Kind switch
         {
             ExpressionKind.Assign => " = ",
             ExpressionKind.Add => " + ",
@@ -208,9 +50,9 @@ public sealed record Expression(ExpressionKind Kind, IEmit? Left = null, IEmit? 
             ExpressionKind.CompareLt => " < ",
             ExpressionKind.CompareLe => " <= ",
             ExpressionKind.MemberAccess => ".",
-            _ => throw new NotImplementedException()
+            _ => throw new NotImplementedException(Kind.ToString())
         };
-    }   
+    }
 }
 
 public enum ExpressionKind : byte
@@ -222,14 +64,362 @@ public enum ExpressionKind : byte
     Or, And, Xor,
     Not,
     Shl, Shr,
-    If,
     Call,
     Return,
+    
+    If, IfElse, 
+    While,
     
     Compare,
     CompareEq, CompareNeq, 
     CompareGt, CompareGe, CompareLt, CompareLe,
     Goto,
     
+    VectorAccess,
+    
     MemberAccess,
+}
+
+public sealed record Nop() : Expression(ExpressionKind.Nop)
+{
+    public static readonly Nop Shared = new();
+    
+    public override void Write(IDecompilerOutput output) { }
+
+    public override int ChildrenCount => 0;
+    public override ref IEmit GetChildren(int id) => throw new Exception("Unexpected shit");
+}
+
+public sealed record IfExpression(IEmit Condition, IEmit Body) : Expression(ExpressionKind.If)
+{
+    public override void Write(IDecompilerOutput output)
+    {
+        output.Write("if", BoxedTextColor.Keyword);
+        output.Write("(", BoxedTextColor.Punctuation);
+        Condition.Write(output);
+        output.WriteLine(")", BoxedTextColor.Punctuation);
+        output.WriteLine("{", BoxedTextColor.Punctuation);
+        output.IncreaseIndent();
+        Body.Write(output);
+        output.WriteLine();
+        output.DecreaseIndent();
+        output.WriteLine("}", BoxedTextColor.Punctuation);
+    }
+
+    public IEmit Condition = Condition;
+    public IEmit Body = Body;
+    
+    public override int ChildrenCount => 2;
+
+    public override ref IEmit GetChildren(int id)
+    {
+        if (id == 0)
+            return ref Condition;
+        if (id == 1)
+            return ref Body;
+        throw new Exception("Unexpected shit");
+    }
+}
+
+public sealed record IfElseExpression(IEmit Condition, IEmit If, IEmit Else) : Expression(ExpressionKind.IfElse)
+{
+    public override void Write(IDecompilerOutput output)
+    {
+        output.Write("if ", BoxedTextColor.Keyword);
+        output.Write("(", BoxedTextColor.Punctuation);
+        Condition.Write(output);
+        output.WriteLine(")", BoxedTextColor.Punctuation);
+        output.Write("{", BoxedTextColor.Punctuation);
+        output.IncreaseIndent();
+        If.Write(output);
+        output.DecreaseIndent();
+        output.WriteLine("}", BoxedTextColor.Punctuation);
+        output.Write("else ", BoxedTextColor.Keyword);
+        var brackets = Else is not IfExpression and not IfElseExpression;
+        if (brackets)
+        {
+            output.Write("{", BoxedTextColor.Punctuation);
+            output.IncreaseIndent();
+        }
+        Else.Write(output);
+        if (brackets)
+        {
+            output.DecreaseIndent();
+            output.WriteLine("}", BoxedTextColor.Punctuation);
+        }
+    }
+    
+    public IEmit Condition = Condition;
+    public IEmit If = If;
+    public IEmit Else = Else;
+    
+    public override int ChildrenCount => 3;
+
+    public override ref IEmit GetChildren(int id)
+    {
+        if (id == 0)
+            return ref Condition;
+        if (id == 1)
+            return ref If;
+        if (id == 2)
+            return ref Else;
+        throw new Exception("Unexpected shit");
+    }
+}
+
+public sealed record WhileExpression(IEmit Condition, IEmit Body) : Expression(ExpressionKind.While)
+{
+    public override void Write(IDecompilerOutput output)
+    {
+        output.Write("while", BoxedTextColor.Keyword);
+        output.Write("(", BoxedTextColor.Punctuation);
+        Condition.Write(output);
+        output.WriteLine(")", BoxedTextColor.Punctuation);
+        output.WriteLine("{", BoxedTextColor.Punctuation);
+        output.IncreaseIndent();
+        Body.Write(output);
+        output.DecreaseIndent();
+        output.WriteLine("}", BoxedTextColor.Punctuation);
+    }
+    
+    public IEmit Condition = Condition;
+    public IEmit Body = Body;
+    
+    public override int ChildrenCount => 2;
+
+    public override ref IEmit GetChildren(int id)
+    {
+        if (id == 0)
+            return ref Condition;
+        if (id == 1)
+            return ref Body;
+        throw new Exception("Unexpected shit");
+    }
+}
+
+public sealed record AssignExpression(IEmit Target, IEmit Value) : Expression(ExpressionKind.Assign)
+{
+    public override void Write(IDecompilerOutput output)
+    {
+        Target.Write(output);
+        output.Write(" = ", BoxedTextColor.Punctuation);
+        Value.Write(output);
+    }
+    
+    public IEmit Value = Value;
+    public IEmit Target = Target;
+    
+    public override int ChildrenCount => 2;
+
+    public override ref IEmit GetChildren(int id)
+    {
+        if (id == 0)
+            return ref Value;
+        if (id == 1)
+            return ref Target;
+        throw new Exception("Unexpected shit");
+    }
+}
+
+public sealed record ReturnExpression(IEmit? Value) : Expression(ExpressionKind.Return)
+{
+    public override void Write(IDecompilerOutput output)
+    {
+        output.Write("return ", BoxedTextColor.Keyword);
+        Value?.Write(output);
+    }
+
+    public IEmit? Value = Value;
+    
+    public override int ChildrenCount => 1;
+
+    public override ref IEmit GetChildren(int id)
+    {
+        if (id == 0)
+            return ref Value!;
+        throw new Exception("Unexpected shit");
+    }
+}
+
+public sealed record GotoExpression(IEmit? Value) : Expression(ExpressionKind.Goto)
+{
+    public override void Write(IDecompilerOutput output)
+    {
+        output.Write("goto ", BoxedTextColor.Keyword);
+        Value?.Write(output);
+    }
+    
+    public IEmit? Value = Value;
+    
+    public override int ChildrenCount => 1;
+
+    public override ref IEmit GetChildren(int id)
+    {
+        if (id == 0)
+            return ref Value!;
+        throw new Exception("Unexpected shit");
+    }
+}
+
+public sealed record MathExpression(ExpressionKind Kind, IEmit Left, IEmit Right) : Expression(Kind)
+{
+    public override void Write(IDecompilerOutput output)
+    {
+        Left.Write(output);
+        output.Write(GetOperator(), BoxedTextColor.Keyword);
+        Right.Write(output);
+    }
+
+    public IEmit Left = Left;
+    public IEmit Right = Right;
+    
+    public override int ChildrenCount => 2;
+
+    public override ref IEmit GetChildren(int id)
+    {
+        if (id == 0)
+            return ref Left;
+        if (id == 1)
+            return ref Right;
+        throw new Exception("Unexpected shit");
+    }
+}
+
+public sealed record CompareExpression(ExpressionKind CompareKind, IEmit Left, IEmit Right) : Expression(CompareKind)
+{
+    public ExpressionKind CompareKind { get; set; } = CompareKind;
+    public IEmit Right = Right;
+    public IEmit Left = Left;
+
+    public override void Write(IDecompilerOutput output)
+    {
+        Left.Write(output);
+        output.Write(CompareKind switch
+        {
+            ExpressionKind.CompareEq => " == ",
+            ExpressionKind.CompareNeq => " != ",
+            ExpressionKind.CompareGt => " > ",
+            ExpressionKind.CompareGe => " >= ",
+            ExpressionKind.CompareLt => " < ",
+            ExpressionKind.CompareLe => " <= ",
+            ExpressionKind.Compare => " unresolvedShit ",
+            _ => throw new Exception("What the fuck")
+        }, BoxedTextColor.Keyword);
+        Right.Write(output);
+    }
+    
+    public override int ChildrenCount => 2;
+
+    public override ref IEmit GetChildren(int id)
+    {
+        if (id == 0)
+            return ref Left;
+        if (id == 1)
+            return ref Right;
+        throw new Exception("Unexpected shit");
+    }
+}
+
+public sealed record NotExpression(IEmit Value) : Expression(ExpressionKind.Not)
+{
+    public override void Write(IDecompilerOutput output)
+    {
+        output.Write("!(", BoxedTextColor.Punctuation);
+        Value.Write(output);
+        output.Write(")", BoxedTextColor.Punctuation);
+    }
+
+    public IEmit Value = Value;
+    
+    public override int ChildrenCount => 1;
+
+    public override ref IEmit GetChildren(int id)
+    {
+        if (id == 0)
+            return ref Value;
+        throw new Exception("Unexpected shit");
+    }
+}
+
+public sealed record DerefExpression(IEmit Value) : Expression(ExpressionKind.Deref)
+{
+    public override void Write(IDecompilerOutput output)
+    {
+        output.Write("*(", BoxedTextColor.Punctuation);
+        Value.Write(output);
+        output.Write(")", BoxedTextColor.Punctuation);
+    }
+
+    public IEmit Value = Value;
+    
+    public override int ChildrenCount => 1;
+
+    public override ref IEmit GetChildren(int id)
+    {
+        if (id == 0)
+            return ref Value;
+        throw new Exception("Unexpected shit");
+    }
+}
+
+public sealed record VectorAccessExpression(IEmit Vector, IEmit Index) : Expression(ExpressionKind.VectorAccess)
+{
+    public override void Write(IDecompilerOutput output)
+    {
+        Vector.Write(output);
+        output.Write("[", BoxedTextColor.Punctuation);
+        Index.Write(output);
+        output.Write("]", BoxedTextColor.Punctuation);
+    }
+
+    public IEmit Index = Index;
+    public IEmit Vector = Vector;
+    
+    public override int ChildrenCount => 2;
+
+    public override ref IEmit GetChildren(int id)
+    {
+        if (id == 0)
+            return ref Index;
+        if (id == 1)
+            return ref Vector;
+        throw new Exception("Unexpected shit");
+    }
+}
+
+public sealed record CallExpression(IEmit Method, IEmit[] Arguments) : Expression(ExpressionKind.Call)
+{
+    public override void Write(IDecompilerOutput output)
+    {
+        var args = 0;
+        if (Method is ManagedFunctionReference { Method: { IsStatic: false } })
+        {
+            args = 1;
+            Arguments[0].Write(output);
+            output.Write(".", BoxedTextColor.Punctuation);
+        }
+        Method.Write(output);
+        output.Write("(", BoxedTextColor.Punctuation);
+        for (; args < Arguments.Length; args++)
+        {
+            Arguments[args].Write(output);
+            if (args != Arguments.Length - 1)
+                output.Write(", ", BoxedTextColor.Punctuation);
+        }
+        output.Write(")", BoxedTextColor.Punctuation);
+    }
+
+    public IEmit Method = Method;
+    public IEmit[] Arguments = Arguments;
+    
+    public override int ChildrenCount => 1 + Arguments.Length;
+
+    public override ref IEmit GetChildren(int id)
+    {
+        if (id == 0)
+            return ref Method;
+        if (id > 0)
+            return ref Arguments[id - 1];
+        throw new Exception("Unexpected shit");
+    }
 }

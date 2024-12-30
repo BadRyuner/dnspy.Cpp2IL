@@ -58,6 +58,8 @@ internal sealed class SearchControlVM : ViewModelBase
         Add(SearchType.Any, "AllAbove", DsImages.ClassPublic, "AllAbove_Key", VisibleMembersFlags.TreeViewAll | VisibleMembersFlags.ParamDef | VisibleMembersFlags.Local);
         //Add(SearchType.Literal, Literal, DsImages.ConstantPublic, Literal_Key, VisibleMembersFlags.MethodBody | VisibleMembersFlags.FieldDef | VisibleMembersFlags.ParamDef | VisibleMembersFlags.PropertyDef | VisibleMembersFlags.Resource | VisibleMembersFlags.ResourceElement | VisibleMembersFlags.Attributes);
 
+        selectedSearchTypeVM = SearchTypeVMs[0];
+        
         _control.SearchListBoxDoubleClick += FollowSelectedReference;
 
         _control.SearchTextBox.TextChanged += TextChanged;

@@ -13,5 +13,7 @@ public enum IL2CppKeyFunction : byte
     IL2CppObjectUnbox,
     IL2CppRaiseException,
     IL2CppVmObjectIsInst,
-    AddrPInvokeLookup
+    AddrPInvokeLookup,
+    
+    ErrorLoL
 }

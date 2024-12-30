@@ -7,5 +7,5 @@ public class FieldNode(TreeView.FieldNode field) : ReferencedAnalyzerTreeNode(fi
     public static readonly Guid GUID = new Guid("37CB861A-1049-4E26-BCA2-62A5F2D26712");
     public override Guid Guid => GUID;
 
-    public override IEnumerable<TreeNodeData> CreateChildren() => new TreeNodeData[] { new FieldUsedByNode(field) };
+    public override IEnumerable<TreeNodeData> CreateChildren() => new TreeNodeData[] { /* new FieldUsedByNode(field) */ };
 }

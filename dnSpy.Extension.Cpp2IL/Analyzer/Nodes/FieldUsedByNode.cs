@@ -1,11 +1,11 @@
 ﻿using System.Linq;
 using System.Threading;
 using Cpp2ILAdapter.PseudoC;
-using Cpp2ILAdapter.PseudoC.Passes;
 using Cpp2ILAdapter.TreeView;
 
 namespace Cpp2ILAdapter.Analyzer.Nodes;
 
+/*
 public class FieldUsedByNode(TreeView.FieldNode field) : SearchNode
 {
     public static readonly Guid GUID = new Guid("6EA8F293-8579-4EC7-BE73-C1A272A15F16");
@@ -54,3 +54,4 @@ public class FieldUsedByNode(TreeView.FieldNode field) : SearchNode
         }
     }
 }
+*/
